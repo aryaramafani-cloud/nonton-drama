@@ -12,8 +12,6 @@
         video { width: 100%; height: 100%; object-fit: contain; }
         :root { --plyr-color-main: #00ffff; }
         .loading-text { color:#0ff; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; width:100%; font-weight:bold; }
-        
-        /* TAMPILAN DETEKTIF ERROR */
         .debug-box { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; text-align: left; overflow-y: auto; height: 100vh; width: 100%; box-sizing: border-box; word-wrap: break-word; }
         .debug-box h3 { color: yellow; margin-top: 0; }
     </style>
@@ -32,22 +30,20 @@
 
         if (s && id && e) {
             let apiLink = "";
-            // RUTE API SERVER
             if (s === "melolo") apiLink = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
             else if (s === "meloshort") apiLink = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
             else if (s === "goodshort") apiLink = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
             else if (s === "dramawave") apiLink = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${e}`;
             else if (s === "reelshort") apiLink = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${e}`;
             else if (s === "freereels") apiLink = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${e}`;
-            else if (s === "netshort") apiLink = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${id}&episodeId=${e}&id=${e}&episode=${e}`; // Tembak semua kemungkinan parameter Netshort
+            else if (s === "netshort") apiLink = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${id}&episodeId=${e}&id=${e}&episode=${e}`;
             else if (s === "dramabox") apiLink = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
 
             fetch(apiLink)
                 .then(r => r.json())
                 .then(data => {
-                    // MESIN PENCARI VIDEO
                     function extractVideo(obj) {
-                        const keys = ['h264', 'play_url', 'video_url', 'stream_url', 'url', 'src', 'm3u8', 'mp4_url', 'videoUrl', 'playUrl'];
+                        const keys = ['h264', 'play_url', 'video_url', 'stream_url', 'url', 'src', 'm3u8', 'mp4_url'];
                         if (typeof obj === 'object' && obj !== null) {
                             for (let k of keys) {
                                 if (typeof obj[k] === 'string' && obj[k].startsWith('http')) return obj[k];
@@ -76,17 +72,71 @@
                             settings: ['speed'], speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
                         });
 
-                        // JIKA VIDEO KETEMU TAPI GAGAL DIPUTAR
+                        // MESIN AUTO-NEXT EPISODE (SUDAH DIPASANG KEMBALI)
+                        player.on('ended', () => {
+                            box.innerHTML += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;"><h2>⏭️ Memuat Episode Selanjutnya...</h2></div>`;
+                            
+                            const c = {
+                                "melolo": { p: "id", path: true }, "meloshort": { p: "dramaId", path: false },
+                                "goodshort": { p: "bookId", path: false }, "dramawave": { p: "id", path: false },
+                                "reelshort": { p: "bookId", path: false }, "freereels": { p: "dramaId", path: false },
+                                "netshort": { p: "dramaId", path: false }, "dramabox": { p: "id", path: true }
+                            }[s];
+                            
+                            let detailUrl = c.path ? `https://api.sonzaix.indevs.in/${s}/detail/${id}` : `https://api.sonzaix.indevs.in/${s}/detail?${c.p}=${id}`;
+                            
+                            fetch(detailUrl).then(res=>res.json()).then(ddata => {
+                                function getEpListJS(d) {
+                                    if(Array.isArray(d) && d.length > 0 && typeof d[0] === 'object') return d;
+                                    if(typeof d === 'object' && d !== null) {
+                                        for(let k of ['episodes', 'episode_list', 'video_list', 'list', 'chapter_list', 'chapters', 'videos', 'data']) {
+                                            if(d[k] && Array.isArray(d[k]) && d[k].length > 0) return d[k];
+                                        }
+                                        for(let k in d) {
+                                            if(typeof d[k] === 'object') {
+                                                let r = getEpListJS(d[k]);
+                                                if(r.length > 0) return r;
+                                            }
+                                        }
+                                    }
+                                    return [];
+                                }
+
+                                let epsList = getEpListJS(ddata.data || ddata);
+                                if(epsList.length > 0) {
+                                    // Cari posisi episode sekarang
+                                    let cIdx = epsList.findIndex(ep => String(ep.episodeId||ep.chapterId||ep.id||ep.video_id||ep.drama_id||ep.episodeIndex||ep.index||ep.episode) === String(e));
+                                    
+                                    if(cIdx !== -1 && cIdx + 1 < epsList.length) {
+                                        let nx = epsList[cIdx + 1];
+                                        
+                                        // Cari ID Episode selanjutnya dengan aman (Tahan Bug)
+                                        let nextId = "";
+                                        if (s === "melolo") nextId = nx.id || nx.video_id;
+                                        else if (s === "meloshort") nextId = nx.episodeId || nx.id;
+                                        else if (s === "goodshort") nextId = nx.id || nx.bookId;
+                                        else if (s === "dramawave") nextId = nx.episode || nx.id;
+                                        else if (s === "reelshort") nextId = nx.chapterId || nx.id;
+                                        else if (s === "freereels") nextId = nx.episode || nx.id;
+                                        else if (s === "netshort") nextId = nx.id || nx.dramaId;
+                                        else if (s === "dramabox") {
+                                            if(nx.episodeIndex !== undefined && nx.episodeIndex !== null) nextId = nx.episodeIndex;
+                                            else if(nx.index !== undefined && nx.index !== null) nextId = nx.index;
+                                            else nextId = nx.id;
+                                        }
+                                        if(nextId === "" || nextId === null) nextId = nx.episode || (cIdx + 2);
+
+                                        // Pindah ke halaman selanjutnya
+                                        window.location.href = `?srv=${s}&id=${id}&eps=${nextId}`;
+                                    } else {
+                                        box.innerHTML += `<div style="position:absolute;top:60%;width:100%;text-align:center;color:white;">✅ Ini adalah episode terakhir.</div>`;
+                                    }
+                                }
+                            });
+                        });
+
                         video.addEventListener('error', () => {
-                            box.innerHTML = `
-                                <div class="debug-box">
-                                    <h3>[DEBUG] VIDEO DIBLOKIR / RUSAK</h3>
-                                    Tolong Screenshot Layar ini Kak:<br><br>
-                                    <b>Link API:</b> ${apiLink}<br>
-                                    <b>Link Video Ditemukan:</b> ${vidUrl}<br><br>
-                                    <a href="${vidUrl}" target="_blank" style="color:cyan; font-size:16px;">▶️ BUKA PAKSA DI CHROME</a>
-                                </div>
-                            `;
+                            box.innerHTML = `<div class="debug-box"><h3>[DEBUG] VIDEO DIBLOKIR / RUSAK</h3><b>Link API:</b> ${apiLink}<br><b>Link Video:</b> ${vidUrl}<br><br><a href="${vidUrl}" target="_blank" style="color:cyan; font-size:16px;">▶️ BUKA PAKSA DI CHROME</a></div>`;
                         });
 
                         if (vidUrl.includes('.m3u8')) {
@@ -100,14 +150,7 @@
                             video.src = vidUrl; player.play();
                         }
                     } else {
-                        // JIKA VIDEO BENAR-BENAR TIDAK ADA DI API
-                        document.getElementById('player-container').innerHTML = `
-                            <div class="debug-box">
-                                <h3>[DEBUG] VIDEO TIDAK KETEMU</h3>
-                                Tolong Screenshot Teks Hijau ini Kak:<br><br>
-                                ${JSON.stringify(data, null, 2)}
-                            </div>
-                        `;
+                        document.getElementById('player-container').innerHTML = `<div class="debug-box"><h3>[DEBUG] VIDEO TIDAK KETEMU</h3>${JSON.stringify(data, null, 2)}</div>`;
                     }
                 })
                 .catch(err => {
