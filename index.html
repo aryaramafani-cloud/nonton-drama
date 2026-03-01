@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="referrer" content="no-referrer">
     <title>Dramaxofort Player</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; text-align: center; }
         .p-box { width: 100%; height: 100vh; max-width: 450px; background: #000; display: flex; justify-content: center; align-items: center; position: relative; }
         video { width: 100%; height: 100%; object-fit: contain; background: #000; }
-        .btn-direct { background: #00ffff; color: #000; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 15px; box-shadow: 0 0 15px rgba(0,255,255,0.5); }
+        .btn-direct { background: #00ffff; color: #000; padding: 12px 20px; border-radius: 30px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 15px; box-shadow: 0 0 15px rgba(0,255,255,0.5); font-size: 14px;}
     </style>
 </head>
 <body>
@@ -55,13 +56,19 @@
                         box.innerHTML = `<video id="my-video" controls autoplay playsinline webkit-playsinline></video>`;
                         const video = document.getElementById('my-video');
                         
-                        // FUNGSI MENAMPILKAN TOMBOL DARURAT JIKA DIBLOKIR SERVER
                         function showErrorPanel() {
+                            // TRIK ANTI DOWNLOAD: Mengarahkan ke Web Player Resmi
+                            let safeLink = vidUrl;
+                            if(vidUrl.includes('.m3u8')) {
+                                // Pakai player publik agar diputar, bukan diunduh
+                                safeLink = `https://hlsjs.video-dev.org/demo/?src=${encodeURIComponent(vidUrl)}`;
+                            }
+
                             box.innerHTML = `
                                 <div style="padding:20px;">
-                                    ❌ <b>Pemutar Diblokir Server (CORS)</b><br><br>
-                                    <small>Browser Telegram ditolak untuk memutar video ini. Silakan buka langsung menggunakan browser HP Anda.</small><br>
-                                    <a href="${vidUrl}" target="_blank" class="btn-direct">🚀 BUKA VIDEO LANGSUNG</a>
+                                    ❌ <b>Akses Browser Diblokir</b><br><br>
+                                    <small>Gunakan Player Eksternal Darurat di bawah ini agar video diputar (Tanpa Download).</small><br>
+                                    <a href="${safeLink}" target="_blank" class="btn-direct">🚀 BUKA PLAYER DARURAT</a>
                                 </div>`;
                         }
 
@@ -74,7 +81,6 @@
                                 hls.attachMedia(video);
                                 hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
                                 
-                                // Jika HLS Error (Ditolak CORS)
                                 hls.on(Hls.Events.ERROR, function (event, data) {
                                     if (data.fatal) { showErrorPanel(); }
                                 });
@@ -87,11 +93,11 @@
                             video.play();
                         }
                     } else {
-                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Video sudah dihapus dari server pusat.</span>`;
+                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Video sudah dihapus dari server.</span>`;
                     }
                 })
                 .catch(err => {
-                    document.getElementById('player-container').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke API.</span>`;
+                    document.getElementById('player-container').innerHTML = `<span style="color:red;">❌ Gagal memuat data dari API.</span>`;
                 });
         }
     </script>
