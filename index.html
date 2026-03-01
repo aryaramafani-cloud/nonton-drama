@@ -29,6 +29,15 @@
                 const streamRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${bId}&chapterId=${cId}`);
                 const streamData = await streamRes.json();
                 const videoUrl = streamData.data.videoList[1].playUrl;
+                
+                // LOGIKA PERBAIKAN:
+        // Kita cari video yang formatnya 'H264' karena ini pasti bisa muncul gambarnya.
+        // Jika tidak ada, kita ambil urutan kedua [1], jika tidak ada baru urutan pertama [0].
+        let selectedVideo = listVideo.find(v => v.encode === 'H264') || listVideo[1] || listVideo[0];
+        let videoUrl = selectedVideo.playUrl;
+
+        player.src({ src: videoUrl, type: 'application/x-mpegURL' });
+        player.play();
 
                 // 2. Ambil Info Drama untuk Auto-Play
                 const detailRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/detail?bookId=${bId}`);
