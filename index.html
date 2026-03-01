@@ -14,6 +14,7 @@
         .loading-text { color:#0ff; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; width:100%; font-weight:bold; }
         .debug-box { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; text-align: left; overflow-y: auto; height: 100vh; width: 100%; box-sizing: border-box; word-wrap: break-word; }
         .debug-box h3 { color: yellow; margin-top: 0; }
+        .btn-direct { background: #00ffff; color: #000; padding: 12px 20px; border-radius: 30px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 15px; font-size: 14px;}
     </style>
 </head>
 <body>
@@ -72,7 +73,13 @@
                             settings: ['speed'], speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
                         });
 
-                        // MESIN AUTO-NEXT EPISODE (SUDAH DIPASANG KEMBALI)
+                        function showErrorPanel() {
+                            let safeLink = vidUrl.includes('.m3u8') ? `https://hlsjs.video-dev.org/demo/?src=${encodeURIComponent(vidUrl)}` : vidUrl;
+                            box.innerHTML = `<div style="padding:20px; color:white; text-align:center;">❌ <b>Browser Telegram Diblokir</b><br><br><small>Gunakan Web Player Darurat agar video berputar tanpa di-download.</small><br><a href="${safeLink}" target="_blank" class="btn-direct">🚀 BUKA PLAYER DARURAT</a></div>`;
+                        }
+                        video.addEventListener('error', showErrorPanel);
+
+                        // MESIN AUTO-NEXT EPISODE ANTI BUG
                         player.on('ended', () => {
                             box.innerHTML += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;"><h2>⏭️ Memuat Episode Selanjutnya...</h2></div>`;
                             
@@ -102,31 +109,28 @@
                                     return [];
                                 }
 
+                                // Ekstraksi ID Kuat (Anti Bug Angka 0)
+                                function extractIdSafe(nx) {
+                                    if (nx.episodeId !== undefined && nx.episodeId !== null) return String(nx.episodeId);
+                                    if (nx.chapterId !== undefined && nx.chapterId !== null) return String(nx.chapterId);
+                                    if (nx.id !== undefined && nx.id !== null) return String(nx.id);
+                                    if (nx.video_id !== undefined && nx.video_id !== null) return String(nx.video_id);
+                                    if (nx.drama_id !== undefined && nx.drama_id !== null) return String(nx.drama_id);
+                                    if (nx.episodeIndex !== undefined && nx.episodeIndex !== null) return String(nx.episodeIndex);
+                                    if (nx.index !== undefined && nx.index !== null) return String(nx.index);
+                                    if (nx.episode !== undefined && nx.episode !== null) return String(nx.episode);
+                                    return null;
+                                }
+
                                 let epsList = getEpListJS(ddata.data || ddata);
                                 if(epsList.length > 0) {
-                                    // Cari posisi episode sekarang
-                                    let cIdx = epsList.findIndex(ep => String(ep.episodeId||ep.chapterId||ep.id||ep.video_id||ep.drama_id||ep.episodeIndex||ep.index||ep.episode) === String(e));
+                                    let cIdx = epsList.findIndex(ep => extractIdSafe(ep) === String(e));
                                     
                                     if(cIdx !== -1 && cIdx + 1 < epsList.length) {
                                         let nx = epsList[cIdx + 1];
+                                        let nextId = extractIdSafe(nx);
+                                        if(!nextId) nextId = cIdx + 2; 
                                         
-                                        // Cari ID Episode selanjutnya dengan aman (Tahan Bug)
-                                        let nextId = "";
-                                        if (s === "melolo") nextId = nx.id || nx.video_id;
-                                        else if (s === "meloshort") nextId = nx.episodeId || nx.id;
-                                        else if (s === "goodshort") nextId = nx.id || nx.bookId;
-                                        else if (s === "dramawave") nextId = nx.episode || nx.id;
-                                        else if (s === "reelshort") nextId = nx.chapterId || nx.id;
-                                        else if (s === "freereels") nextId = nx.episode || nx.id;
-                                        else if (s === "netshort") nextId = nx.id || nx.dramaId;
-                                        else if (s === "dramabox") {
-                                            if(nx.episodeIndex !== undefined && nx.episodeIndex !== null) nextId = nx.episodeIndex;
-                                            else if(nx.index !== undefined && nx.index !== null) nextId = nx.index;
-                                            else nextId = nx.id;
-                                        }
-                                        if(nextId === "" || nextId === null) nextId = nx.episode || (cIdx + 2);
-
-                                        // Pindah ke halaman selanjutnya
                                         window.location.href = `?srv=${s}&id=${id}&eps=${nextId}`;
                                     } else {
                                         box.innerHTML += `<div style="position:absolute;top:60%;width:100%;text-align:center;color:white;">✅ Ini adalah episode terakhir.</div>`;
@@ -135,14 +139,11 @@
                             });
                         });
 
-                        video.addEventListener('error', () => {
-                            box.innerHTML = `<div class="debug-box"><h3>[DEBUG] VIDEO DIBLOKIR / RUSAK</h3><b>Link API:</b> ${apiLink}<br><b>Link Video:</b> ${vidUrl}<br><br><a href="${vidUrl}" target="_blank" style="color:cyan; font-size:16px;">▶️ BUKA PAKSA DI CHROME</a></div>`;
-                        });
-
                         if (vidUrl.includes('.m3u8')) {
                             if (Hls.isSupported()) {
                                 const hls = new Hls(); hls.loadSource(vidUrl); hls.attachMedia(video);
                                 hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+                                hls.on(Hls.Events.ERROR, function (event, data) { if (data.fatal) showErrorPanel(); });
                             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                                 video.src = vidUrl; video.addEventListener('loadedmetadata', () => player.play());
                             }
