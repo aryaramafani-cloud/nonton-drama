@@ -10,18 +10,17 @@
     <script>
         const q = new URLSearchParams(window.location.search);
         const player = videojs('p');
-        async function play(dId, eps) {
+        async function play(bId, cId) {
             try {
-                // PAKAI API FREEREELS STREAM
-                const res = await fetch(`https://api.sonzaix.indevs.in/freereels/stream?dramaId=${dId}&episode=${eps}`);
+                const res = await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${bId}&chapterId=${cId}`);
                 const s = await res.json();
                 const v = s.data.videoList.find(x => x.encode === 'H264') || s.data.videoList[0];
                 player.src({ src: v.playUrl, type: 'application/x-mpegURL' });
                 player.play();
-                player.one('ended', () => play(dId, parseInt(eps) + 1));
+                player.one('ended', () => play(bId, parseInt(cId) + 1));
             } catch(e) { console.error(e); }
         }
-        if(q.get('dramaId')) play(q.get('dramaId'), q.get('episode'));
+        if(q.get('bookId')) play(q.get('bookId'), q.get('chapterId'));
     </script>
 </body>
 </html>
