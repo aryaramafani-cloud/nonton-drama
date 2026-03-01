@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="referrer" content="no-referrer">
-    <title>Dramaxofort Premium Player</title>
+    <title>Dramaxofort Player</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
         body { margin: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
@@ -12,8 +12,6 @@
         video { width: 100%; height: 100%; object-fit: contain; }
         :root { --plyr-color-main: #00ffff; }
         .loading-text { color:#0ff; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; width:100%; font-weight:bold; }
-        .debug-box { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; text-align: left; overflow-y: auto; height: 100vh; width: 100%; box-sizing: border-box; word-wrap: break-word; }
-        .debug-box h3 { color: yellow; margin-top: 0; }
         .btn-direct { background: #00ffff; color: #000; padding: 12px 20px; border-radius: 30px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 15px; font-size: 14px;}
     </style>
 </head>
@@ -31,41 +29,64 @@
 
         if (s && id && e) {
             let apiLink = "";
-            if (s === "melolo") apiLink = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
-            else if (s === "meloshort") apiLink = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
-            else if (s === "goodshort") apiLink = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
-            else if (s === "dramawave") apiLink = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${e}`;
-            else if (s === "reelshort") apiLink = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${e}`;
-            else if (s === "freereels") apiLink = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${e}`;
-            else if (s === "netshort") apiLink = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${id}&episodeId=${e}&id=${e}&episode=${e}`;
-            else if (s === "dramabox") apiLink = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
+            if (s === "melolo") apiLink = "https://api.sonzaix.indevs.in/melolo/stream/" + e;
+            else if (s === "meloshort") apiLink = "https://api.sonzaix.indevs.in/meloshort/stream?dramaId=" + id + "&episodeId=" + e;
+            else if (s === "goodshort") apiLink = "https://api.sonzaix.indevs.in/goodshort/stream?bookId=" + e;
+            else if (s === "dramawave") apiLink = "https://api.sonzaix.indevs.in/dramawave/stream?dramaId=" + id + "&episode=" + e;
+            else if (s === "reelshort") apiLink = "https://api.sonzaix.indevs.in/reelshort/stream?bookId=" + id + "&chapterId=" + e;
+            else if (s === "freereels") apiLink = "https://api.sonzaix.indevs.in/freereels/stream?dramaId=" + id + "&episode=" + e;
+            else if (s === "netshort") apiLink = "https://api.sonzaix.indevs.in/netshort/stream?dramaId=" + id + "&episodeId=" + e + "&id=" + e + "&episode=" + e;
+            else if (s === "dramabox") apiLink = "https://api.sonzaix.indevs.in/dramabox/stream?dramaId=" + id + "&episodeIndex=" + e;
 
             fetch(apiLink)
-                .then(r => r.json())
-                .then(data => {
-                    function extractVideo(obj) {
-                        const keys = ['h264', 'play_url', 'video_url', 'stream_url', 'url', 'src', 'm3u8', 'mp4_url'];
-                        if (typeof obj === 'object' && obj !== null) {
-                            for (let k of keys) {
-                                if (typeof obj[k] === 'string' && obj[k].startsWith('http')) return obj[k];
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    
+                    // MESIN PENCARI 3 LAPIS (Sangat Agresif)
+                    let vidUrl = "";
+                    const keys = ['h264', 'play_url', 'video_url', 'stream_url', 'url', 'src', 'm3u8', 'mp4_url', 'videoUrl', 'playUrl', 'link', 'file', 'video'];
+                    
+                    function searchLapis1(o) {
+                        if (vidUrl) return;
+                        if (typeof o === 'object' && o !== null) {
+                            for (let i = 0; i < keys.length; i++) {
+                                let k = keys[i];
+                                if (o[k] && typeof o[k] === 'string' && o[k].indexOf('http') === 0) { vidUrl = o[k]; return; }
                             }
-                            for (let k in obj) {
-                                if (typeof obj[k] === 'object') {
-                                    let res = extractVideo(obj[k]);
-                                    if (res) return res;
-                                } else if (typeof obj[k] === 'string' && obj[k].startsWith('http')) {
-                                    if (obj[k].includes('.mp4') || obj[k].includes('.m3u8')) return obj[k];
+                            for (let k in o) searchLapis1(o[k]);
+                        }
+                    }
+                    searchLapis1(data);
+
+                    if (!vidUrl) {
+                        function searchLapis2(o) {
+                            if (vidUrl) return;
+                            if (typeof o === 'object' && o !== null) {
+                                for (let k in o) {
+                                    if (typeof o[k] === 'string' && o[k].indexOf('http') === 0 && (o[k].indexOf('.mp4') !== -1 || o[k].indexOf('.m3u8') !== -1)) { vidUrl = o[k]; return; }
+                                    if (typeof o[k] === 'object') searchLapis2(o[k]);
                                 }
                             }
                         }
-                        return "";
+                        searchLapis2(data);
                     }
-                    
-                    let vidUrl = extractVideo(data);
+
+                    if (!vidUrl) {
+                        function searchLapis3(o) {
+                            if (vidUrl) return;
+                            if (typeof o === 'object' && o !== null) {
+                                for (let k in o) {
+                                    if (typeof o[k] === 'string' && o[k].indexOf('http') === 0 && o[k].indexOf('api.sonzaix') === -1) { vidUrl = o[k]; return; }
+                                    if (typeof o[k] === 'object') searchLapis3(o[k]);
+                                }
+                            }
+                        }
+                        searchLapis3(data);
+                    }
 
                     if (vidUrl) {
                         const box = document.getElementById('player-container');
-                        box.innerHTML = `<video id="my-video" controls playsinline webkit-playsinline></video>`;
+                        box.innerHTML = '<video id="my-video" controls playsinline webkit-playsinline></video>';
                         const video = document.getElementById('my-video');
                         
                         const player = new Plyr(video, {
@@ -74,34 +95,33 @@
                         });
 
                         function showErrorPanel() {
-                            let safeLink = vidUrl.includes('.m3u8') ? `https://hlsjs.video-dev.org/demo/?src=${encodeURIComponent(vidUrl)}` : vidUrl;
-                            box.innerHTML = `<div style="padding:20px; color:white; text-align:center;">❌ <b>Browser Telegram Diblokir</b><br><br><small>Gunakan Web Player Darurat agar video berputar tanpa di-download.</small><br><a href="${safeLink}" target="_blank" class="btn-direct">🚀 BUKA PLAYER DARURAT</a></div>`;
+                            let safeLink = vidUrl.indexOf('.m3u8') !== -1 ? "https://hlsjs.video-dev.org/demo/?src=" + encodeURIComponent(vidUrl) : vidUrl;
+                            box.innerHTML = '<div style="padding:20px; color:white; text-align:center;">❌ <b>Browser Telegram Diblokir</b><br><br><small>Gunakan Web Player Darurat agar video berputar tanpa di-download.</small><br><a href="' + safeLink + '" target="_blank" class="btn-direct">🚀 BUKA PLAYER DARURAT</a></div>';
                         }
                         video.addEventListener('error', showErrorPanel);
 
-                        // MESIN AUTO-NEXT EPISODE 100% BEBAS MACET
-                        player.on('ended', () => {
-                            // Buat layar loading menutupi video
+                        player.on('ended', function() {
                             let overlay = document.createElement('div');
                             overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;text-align:center;padding:20px;box-sizing:border-box;';
-                            overlay.innerHTML = `<h2>⏭️ Mencari Episode Selanjutnya...</h2>`;
+                            overlay.innerHTML = '<h2>⏭️ Mencari Episode Selanjutnya...</h2>';
                             box.appendChild(overlay);
                             
-                            const c = {
+                            const cPaths = {
                                 "melolo": { p: "id", path: true }, "meloshort": { p: "dramaId", path: false },
                                 "goodshort": { p: "bookId", path: false }, "dramawave": { p: "id", path: false },
                                 "reelshort": { p: "bookId", path: false }, "freereels": { p: "dramaId", path: false },
                                 "netshort": { p: "dramaId", path: false }, "dramabox": { p: "id", path: true }
-                            }[s];
+                            };
+                            let c = cPaths[s];
+                            let detailUrl = c.path ? "https://api.sonzaix.indevs.in/" + s + "/detail/" + id : "https://api.sonzaix.indevs.in/" + s + "/detail?" + c.p + "=" + id;
                             
-                            let detailUrl = c.path ? `https://api.sonzaix.indevs.in/${s}/detail/${id}` : `https://api.sonzaix.indevs.in/${s}/detail?${c.p}=${id}`;
-                            
-                            fetch(detailUrl).then(res=>res.json()).then(ddata => {
+                            fetch(detailUrl).then(function(res){return res.json()}).then(function(ddata) {
                                 function getEpListJS(d) {
                                     if(Array.isArray(d) && d.length > 0 && typeof d[0] === 'object') return d;
                                     if(typeof d === 'object' && d !== null) {
-                                        for(let k of ['episodes', 'episode_list', 'video_list', 'list', 'chapter_list', 'chapters', 'videos', 'data']) {
-                                            if(d[k] && Array.isArray(d[k]) && d[k].length > 0) return d[k];
+                                        let keysCheck = ['episodes', 'episode_list', 'video_list', 'list', 'chapter_list', 'chapters', 'videos', 'data'];
+                                        for(let i=0; i<keysCheck.length; i++) {
+                                            if(d[keysCheck[i]] && Array.isArray(d[keysCheck[i]]) && d[keysCheck[i]].length > 0) return d[keysCheck[i]];
                                         }
                                         for(let k in d) {
                                             if(typeof d[k] === 'object') {
@@ -113,83 +133,79 @@
                                     return [];
                                 }
 
+                                function extractIdSafe(nx) {
+                                    if (nx.episodeId !== undefined && nx.episodeId !== null) return String(nx.episodeId);
+                                    if (nx.chapterId !== undefined && nx.chapterId !== null) return String(nx.chapterId);
+                                    if (nx.id !== undefined && nx.id !== null) return String(nx.id);
+                                    if (nx.video_id !== undefined && nx.video_id !== null) return String(nx.video_id);
+                                    if (nx.drama_id !== undefined && nx.drama_id !== null) return String(nx.drama_id);
+                                    if (nx.episodeIndex !== undefined && nx.episodeIndex !== null) return String(nx.episodeIndex);
+                                    if (nx.index !== undefined && nx.index !== null) return String(nx.index);
+                                    if (nx.episode !== undefined && nx.episode !== null) return String(nx.episode);
+                                    if (nx.serial_number !== undefined && nx.serial_number !== null) return String(nx.serial_number);
+                                    return null;
+                                }
+
                                 let epsList = getEpListJS(ddata.data || ddata);
                                 if(epsList.length > 0) {
-                                    // PENCARI TINGKAT TINGGI (Mencocokkan semua ID yang mungkin)
                                     let currentEpsParams = String(e).trim();
-                                    let cIdx = epsList.findIndex((ep, index) => {
-                                        let possibleValues = [
-                                            ep.episodeId, ep.chapterId, ep.id, ep.video_id, ep.drama_id, 
-                                            ep.episodeIndex, ep.index, ep.episode, ep.serial_number, (index + 1)
-                                        ];
-                                        return possibleValues.some(v => v != null && String(v).trim() === currentEpsParams);
+                                    let cIdx = epsList.findIndex(function(ep, index) {
+                                        let possibleValues = [ep.episodeId, ep.chapterId, ep.id, ep.video_id, ep.drama_id, ep.episodeIndex, ep.index, ep.episode, ep.serial_number, (index + 1)];
+                                        for(let j=0; j<possibleValues.length; j++){
+                                            if(possibleValues[j] != null && String(possibleValues[j]).trim() === currentEpsParams) return true;
+                                        }
+                                        return false;
                                     });
                                     
                                     if(cIdx !== -1) {
                                         if (cIdx + 1 < epsList.length) {
                                             let nx = epsList[cIdx + 1];
-                                            let nextId = nx.episodeId ?? nx.chapterId ?? nx.id ?? nx.video_id ?? nx.drama_id ?? nx.episodeIndex ?? nx.index ?? nx.episode ?? nx.serial_number ?? (cIdx + 2);
+                                            let nextId = extractIdSafe(nx);
+                                            if(!nextId) nextId = cIdx + 2; 
                                             
-                                            overlay.innerHTML = `<h2>🔄 Mengalihkan...</h2>`;
-                                            setTimeout(() => {
-                                                window.location.href = `?srv=${s}&id=${id}&eps=${nextId}`;
+                                            overlay.innerHTML = '<h2>🔄 Mengalihkan...</h2>';
+                                            setTimeout(function() {
+                                                window.location.href = "?srv=" + s + "&id=" + id + "&eps=" + nextId;
                                             }, 800);
                                         } else {
-                                            overlay.innerHTML = `<h2 style="color:#0f0;">✅ TAMAT</h2><p style="color:white;">Ini adalah episode terakhir.</p>`;
+                                            overlay.innerHTML = '<h2 style="color:#0f0;">✅ TAMAT</h2><p style="color:white;">Ini adalah episode terakhir.</p>';
                                         }
                                     } else {
-                                        overlay.innerHTML = `<h2 style="color:yellow;">⚠️ Urutan Terputus</h2><p style="color:white;">Silakan kembali ke Bot Telegram untuk memilih episode berikutnya.</p>`;
+                                        overlay.innerHTML = '<h2 style="color:yellow;">⚠️ Urutan Terputus</h2><p style="color:white;">Silakan kembali ke Bot Telegram.</p>';
                                     }
                                 } else {
-                                    overlay.innerHTML = `<h2 style="color:red;">❌ Data Gagal Dimuat</h2>`;
+                                    overlay.innerHTML = '<h2 style="color:red;">❌ Data Gagal Dimuat</h2>';
                                 }
-                            }).catch(err => {
-                                overlay.innerHTML = `<h2 style="color:red;">❌ Server Terputus</h2>`;
+                            }).catch(function(err) {
+                                overlay.innerHTML = '<h2 style="color:red;">❌ Server Terputus</h2>';
                             });
                         });
 
-                        if (vidUrl.includes('.m3u8')) {
+                        if (vidUrl.indexOf('.m3u8') !== -1) {
                             if (Hls.isSupported()) {
                                 const hls = new Hls(); hls.loadSource(vidUrl); hls.attachMedia(video);
-                                hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+                                hls.on(Hls.Events.MANIFEST_PARSED, function() { player.play(); });
                                 hls.on(Hls.Events.ERROR, function (event, data) { if (data.fatal) showErrorPanel(); });
                             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                video.src = vidUrl; video.addEventListener('loadedmetadata', () => player.play());
+                                video.src = vidUrl; video.addEventListener('loadedmetadata', function() { player.play(); });
                             }
                         } else {
                             video.src = vidUrl; player.play();
                         }
                     } else {
-                        document.getElementById('player-container').innerHTML = `<div class="debug-box"><h3>[DEBUG] VIDEO TIDAK KETEMU</h3>${JSON.stringify(data, null, 2)}</div>`;
+                        // KOTAK DETEKTIF ANTI-MATRIX
+                        document.getElementById('player-container').innerHTML = 
+                            '<div style="width:100%; height:100%; padding:10px; box-sizing:border-box; background:#111;">' +
+                                '<h3 style="color:yellow; margin-top:0;">[DEBUG] DATA SERVER API</h3>' +
+                                '<p style="color:white; font-size:12px;">Screenshot isi kotak ini Kak:</p>' +
+                                '<textarea style="width:100%; height:75%; background:#000; color:#0f0; border:1px solid #0ff; font-family:monospace; font-size:11px;" readonly>' +
+                                    'API LINK:\n' + apiLink + '\n\nDATA:\n' + JSON.stringify(data, null, 2) +
+                                '</textarea>' +
+                            '</div>';
                     }
                 })
-                .catch(err => {
-                    document.getElementById('status-text').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke Database Pusat.</span>`;
-                });
-        }
-    </script>
-</body>
-</html>                                }
-                            });
-                        });
-
-                        if (vidUrl.includes('.m3u8')) {
-                            if (Hls.isSupported()) {
-                                const hls = new Hls(); hls.loadSource(vidUrl); hls.attachMedia(video);
-                                hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
-                                hls.on(Hls.Events.ERROR, function (event, data) { if (data.fatal) showErrorPanel(); });
-                            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                video.src = vidUrl; video.addEventListener('loadedmetadata', () => player.play());
-                            }
-                        } else {
-                            video.src = vidUrl; player.play();
-                        }
-                    } else {
-                        document.getElementById('player-container').innerHTML = `<div class="debug-box"><h3>[DEBUG] VIDEO TIDAK KETEMU</h3>${JSON.stringify(data, null, 2)}</div>`;
-                    }
-                })
-                .catch(err => {
-                    document.getElementById('status-text').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke Database Pusat.</span>`;
+                .catch(function(err) {
+                    document.getElementById('status-text').innerHTML = '<span style="color:red;">❌ Gagal terhubung ke Database Pusat.</span>';
                 });
         }
     </script>
