@@ -5,61 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dramaxofort Player</title>
     <style>
-        body { margin: 0; background: #000; font-family: sans-serif; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .player-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #00ffff; border-radius: 12px; overflow: hidden; box-shadow: 0 0 25px rgba(0,255,255,0.4); }
+        body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
+        .p-box { width: 95%; max-width: 800px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 10px; overflow: hidden; }
         iframe { width: 100%; height: 100%; border: none; }
-        .info { margin-top: 20px; text-align: center; }
-        .btn { margin-top: 15px; padding: 12px 35px; background: #00ffff; color: #000; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; transition: 0.3s; }
-        .btn:hover { background: #00cccc; transform: scale(1.05); }
     </style>
 </head>
 <body>
-    <div class="player-box" id="p">⏳ Menyiapkan Video...</div>
-    <div class="info">
-        <h1 style="color:#00ffff; font-size:1.4rem; margin:0; letter-spacing:2px;">DRAMAXOFORT PLAYER</h1>
-        <p id="m" style="color:#888; margin:10px 0;">Menghubungkan ke Server...</p>
-        <a href="https://t.me/dramaxofort_bot" class="btn">KEMBALI KE BOT</a>
-    </div>
-
+    <div class="p-box" id="p">Memuat Video...</div>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const srv = params.get('srv')?.toLowerCase();
-        const id = params.get('id');
-        const eps = params.get('eps'); // Diisi d_id episode atau nomor episode
-
-        if (srv && id && eps) {
-            document.getElementById('m').innerText = `Server: ${srv.toUpperCase()} | Episode Terpilih`;
-            let vUrl = "";
-
-            // --- LOGIKA SETIAP SERVER (SESUAI DAFTAR API KAMU) ---
-            if (srv === "melolo") {
-                vUrl = `https://api.sonzaix.indevs.in/melolo/stream/${eps}`;
-            } 
-            else if (srv === "meloshort") {
-                vUrl = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${eps}`;
-            }
-            else if (srv === "goodshort") {
-                vUrl = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${eps}`;
-            }
-            else if (srv === "dramawave") {
-                vUrl = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${eps}`;
-            }
-            else if (srv === "reelshort") {
-                vUrl = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${eps}`;
-            }
-            else if (srv === "freereels") {
-                vUrl = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${eps}`;
-            }
-            else if (srv === "netshort") {
-                vUrl = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${eps}`;
-            }
-            else if (srv === "dramabox") {
-                vUrl = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${eps}`;
-            }
-
-            document.getElementById('p').innerHTML = `<iframe src="${vUrl}" allowfullscreen></iframe>`;
-        } else {
-            document.getElementById('p').innerHTML = `<div style="padding:20px; text-align:center;">❌ Data tidak lengkap. Buka lewat bot.</div>`;
+        const u = new URLSearchParams(window.location.search);
+        const s = u.get('srv'), id = u.get('id'), e = u.get('eps');
+        if (s && id && e) {
+            let v = "";
+            // LOGIKA 8 SERVER SESUAI LIST API KAMU
+            if (s === "melolo") v = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
+            else if (s === "meloshort") v = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
+            else if (s === "goodshort") v = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
+            else if (s === "dramawave") v = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${e}`;
+            else if (s === "reelshort") v = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${e}`;
+            else if (s === "freereels") v = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${e}`;
+            else if (s === "netshort") v = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${e}`;
+            else if (s === "dramabox") v = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
+            
+            document.getElementById('p').innerHTML = `<iframe src="${v}" allowfullscreen></iframe>`;
         }
     </script>
 </body>
