@@ -1,74 +1,36 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Player Drama Kalcer</title>
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
-        .video-js { width: 100vw; height: 100vh; }
-        #info-overlay { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; pointer-events: none; z-index: 10; }
-    </style>
 </head>
-<body>
-    <div id="info-overlay">Memuat Drama...</div>
-    <video id="player" class="video-js vjs-big-play-centered" controls preload="auto" playsinline></video>
-
+<body style="margin:0; background:#000;">
+    <video id="p" class="video-js vjs-big-play-centered" controls style="width:100vw; height:100vh;"></video>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        let bookId = params.get('bookId');
-        let chapterId = params.get('chapterId');
-        const info = document.getElementById('info-overlay');
-        const player = videojs('player');
-
-        async function playDrama(bId, cId) {
+        const q = new URLSearchParams(window.location.search);
+        const player = videojs('p');
+        
+        async function play(b, c) {
             try {
-                // 1. Ambil Link Video
-                const streamRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${bId}&chapterId=${cId}`);
-                const streamData = await streamRes.json();
-                const videoUrl = streamData.data.videoList[1].playUrl;
-                
-                // LOGIKA PERBAIKAN:
-        // Kita cari video yang formatnya 'H264' karena ini pasti bisa muncul gambarnya.
-        // Jika tidak ada, kita ambil urutan kedua [1], jika tidak ada baru urutan pertama [0].
-        let selectedVideo = listVideo.find(v => v.encode === 'H264') || listVideo[1] || listVideo[0];
-        let videoUrl = selectedVideo.playUrl;
-
-        player.src({ src: videoUrl, type: 'application/x-mpegURL' });
-        player.play();
-
-                // 2. Ambil Info Drama untuk Auto-Play
-                const detailRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/detail?bookId=${bId}`);
-                const detailData = await detailRes.json();
-                const videoList = detailData.data.video_list;
-                
-                // Cari index episode sekarang
-                const currentIndex = videoList.findIndex(v => v.chapterId === cId);
-                const currentEps = videoList[currentIndex];
-                info.innerText = `Memutar: ${detailData.data.drama_name} - ${currentEps.title}`;
-
-                player.src({ src: videoUrl, type: 'application/x-mpegURL' });
+                const s = await (await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${b}&chapterId=${c}`)).json();
+                // MENCARI FORMAT VIDEO YANG ADA GAMBARNYA
+                const v = s.data.videoList.find(x => x.encode === 'H264') || s.data.videoList[1] || s.data.videoList[0];
+                player.src({ src: v.playUrl, type: 'application/x-mpegURL' });
                 player.play();
-
-                // LOGIKA AUTO-PLAY
-                player.one('ended', () => {
-                    const nextEps = videoList[currentIndex + 1];
-                    if (nextEps && !nextEps.isLocked) {
-                        info.innerText = "Memutar Episode Selanjutnya...";
-                        playDrama(bId, nextEps.chapterId);
-                    } else {
-                        alert("Drama selesai atau episode berikutnya terkunci.");
-                    }
+                
+                // LOGIKA PINDAH EPISODE OTOMATIS
+                player.one('ended', async () => {
+                    const d = await (await fetch(`https://api.sonzaix.indevs.in/reelshort/detail?bookId=${b}`)).json();
+                    const list = d.data.video_list;
+                    const idx = list.findIndex(x => x.chapterId === c);
+                    const next = list[idx + 1];
+                    if(next && !next.isLocked) play(b, next.chapterId);
                 });
-
-            } catch (e) {
-                alert("Gagal memuat video. Pastikan koneksi stabil.");
-            }
+            } catch(e) { alert("Gagal memuat video"); }
         }
-
-        if(bookId && chapterId) playDrama(bookId, chapterId);
+        
+        if(q.get('bookId')) play(q.get('bookId'), q.get('chapterId'));
     </script>
 </body>
 </html>
