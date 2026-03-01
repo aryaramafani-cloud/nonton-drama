@@ -6,20 +6,13 @@
     <title>Dramaxofort Player</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { 
-            margin: 0; background: #000; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; height: 100vh; overflow: hidden; 
-        }
-        /* UKURAN LAYAR TIKTOK (9:16) BERSIH TANPA TOMBOL */
-        .p-box { 
-            width: 100%; height: 100vh; max-width: 450px; background: #000; 
-            display: flex; justify-content: center; align-items: center; position: relative; 
-        }
+        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .p-box { width: 100%; height: 100vh; max-width: 450px; background: #000; display: flex; justify-content: center; align-items: center; position: relative; }
     </style>
 </head>
 <body>
     <div class="p-box" id="player-container">
-        <span style="color:#0ff; font-family:sans-serif;">⏳ Menarik Gambar Video...</span>
+        <span style="color:#0ff; font-family:sans-serif;">⏳ Mencari Jalur Video...</span>
     </div>
 
     <script>
@@ -41,26 +34,30 @@
                 .then(r => r.json())
                 .then(data => {
                     let vidUrl = "";
-                    if (data.data && data.data.h264) vidUrl = data.data.h264;
-                    else if (data.data && data.data.video_list && data.data.video_list.h264) vidUrl = data.data.video_list.h264;
-                    else if (data.data && data.data.url) vidUrl = data.data.url;
-                    else if (data.h264) vidUrl = data.h264;
 
-                    if (!vidUrl) {
-                        function scan(obj) {
-                            if (vidUrl) return;
-                            for (let k in obj) {
-                                if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8')) && obj[k].startsWith('http')) {
-                                    vidUrl = obj[k]; return;
-                                } else if (typeof obj[k] === 'object' && obj[k] !== null) { scan(obj[k]); }
+                    // MESIN PENCARI VIDEO SUPER AGRESIF
+                    function cariVideo(obj) {
+                        if (vidUrl) return;
+                        
+                        // Cek laci populer dulu
+                        if (obj.h264) { vidUrl = obj.h264; return; }
+                        if (obj.play_url) { vidUrl = obj.play_url; return; }
+                        if (obj.video_url) { vidUrl = obj.video_url; return; }
+                        if (obj.url && typeof obj.url === 'string' && obj.url.includes('http')) { vidUrl = obj.url; return; }
+
+                        // Geledah seluruh isi json
+                        for (let k in obj) {
+                            if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8')) && obj[k].startsWith('http')) {
+                                vidUrl = obj[k]; return;
+                            } else if (typeof obj[k] === 'object' && obj[k] !== null) {
+                                cariVideo(obj[k]);
                             }
                         }
-                        scan(data);
                     }
+                    cariVideo(data); // Mulai menggeledah
 
                     if (vidUrl) {
                         const box = document.getElementById('player-container');
-                        // MEMAKSA GAMBAR MUNCUL FULL SCREEN TIKTOK
                         box.innerHTML = `<video id="my-video" controls autoplay playsinline webkit-playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`;
                         const video = document.getElementById('my-video');
 
@@ -79,8 +76,11 @@
                             video.play();
                         }
                     } else {
-                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Gagal menemukan file video.</span>`;
+                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Video dihapus oleh Server.</span>`;
                     }
+                })
+                .catch(err => {
+                    document.getElementById('player-container').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke API.</span>`;
                 });
         }
     </script>
