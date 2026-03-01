@@ -5,25 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dramaxofort Player</title>
     <style>
-        body { margin: 0; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .player-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #00ffff; border-radius: 12px; overflow: hidden; box-shadow: 0 0 30px rgba(0, 255, 255, 0.3); }
+        body { margin: 0; background: #000; font-family: sans-serif; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .player-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #00ffff; border-radius: 12px; overflow: hidden; box-shadow: 0 0 25px rgba(0,255,255,0.3); }
         iframe { width: 100%; height: 100%; border: none; }
-        .info { margin-top: 25px; text-align: center; }
-        h1 { font-size: 1.4rem; color: #00ffff; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
-        p { color: #888; margin: 10px 0 20px; font-size: 1rem; }
-        .btn { padding: 12px 35px; background: #00ffff; color: #000; text-decoration: none; border-radius: 50px; font-weight: bold; transition: 0.3s; display: inline-block; }
+        .btn { margin-top: 25px; padding: 12px 35px; background: #00ffff; color: #000; text-decoration: none; border-radius: 50px; font-weight: bold; transition: 0.3s; }
         .btn:hover { background: #00cccc; transform: scale(1.05); }
     </style>
 </head>
 <body>
-
-    <div class="player-box" id="player">
-        <div style="display:flex; height:100%; align-items:center; justify-content:center;">⏳ Memuat Video...</div>
-    </div>
-
-    <div class="info">
-        <h1 id="title">DRAMAXOFORT PLAYER</h1>
-        <p id="meta">Server: - | Episode: -</p>
+    <div class="player-box" id="p">⏳ Memuat Video...</div>
+    <div style="margin-top:20px; text-align:center;">
+        <h1 style="color:#00ffff; font-size:1.4rem; margin:0; letter-spacing:2px;">DRAMAXOFORT PLAYER</h1>
+        <p id="m" style="color:#888; margin:10px 0 20px;">Server: - | Episode: -</p>
         <a href="https://t.me/dramaxofort_bot" class="btn">KEMBALI KE BOT</a>
     </div>
 
@@ -34,36 +27,28 @@
         const eps = params.get('eps');
 
         if (srv && id && eps) {
-            document.getElementById('meta').innerText = `Server: ${srv.toUpperCase()} | Episode: ${eps}`;
-            
-            let videoUrl = "";
+            document.getElementById('m').innerText = `Server: ${srv.toUpperCase()} | Episode: ${eps}`;
+            let vUrl = "";
 
-            // LOGIKA DETEKSI SERVER OTOMATIS
+            // --- LOGIKA FIX ENDPOINT NOT FOUND ---
+            // 1. Cek tipe pemanggilan (Path atau Query)
             if (srv === "melolo" || srv === "dramabox") {
-                // Tipe Path: /srv/video/id/eps
-                videoUrl = `https://api.sonzaix.indevs.in/${srv}/video/${id}/${eps}`;
+                // Server ini biasanya pakai format /srv/video/id/eps
+                vUrl = `https://api.sonzaix.indevs.in/${srv}/video/${id}/${eps}`;
             } 
-            else if (srv === "goodshort" || srv === "reelshort") {
-                // Tipe Query: ?bookId=id&eps=eps
-                videoUrl = `https://api.sonzaix.indevs.in/${srv}/video?bookId=${id}&eps=${eps}`;
-            }
-            else if (srv === "meloshort" || srv === "freereels" || srv === "netshort") {
-                // Tipe Query: ?dramaId=id&eps=eps
-                videoUrl = `https://api.sonzaix.indevs.in/${srv}/video?dramaId=${id}&eps=${eps}`;
-            }
-            else if (srv === "dramawave") {
-                // Tipe Query: ?id=id&eps=eps
-                videoUrl = `https://api.sonzaix.indevs.in/${srv}/video?id=${id}&eps=${eps}`;
-            }
+            else {
+                // Server lainnya pakai format query (?key=id&eps=eps)
+                let key = "id"; // Default untuk dramawave, freereels, dll
+                if (["meloshort", "freereels", "netshort"].includes(srv)) key = "dramaId";
+                if (["goodshort", "reelshort"].includes(srv)) key = "bookId";
 
-            // Memasukkan Video ke dalam Player
-            if (videoUrl !== "") {
-                document.getElementById('player').innerHTML = `<iframe src="${videoUrl}" allowfullscreen></iframe>`;
-            } else {
-                document.getElementById('player').innerHTML = `<div style="padding:20px; text-align:center;">⚠️ Server tidak dikenal.</div>`;
+                vUrl = `https://api.sonzaix.indevs.in/${srv}/video?${key}=${id}&eps=${eps}`;
             }
+            
+            // Masukkan ke iframe
+            document.getElementById('p').innerHTML = `<iframe src="${vUrl}" allowfullscreen></iframe>`;
         } else {
-            document.getElementById('player').innerHTML = `<div style="padding:20px; text-align:center;">❌ Link tidak valid atau data kurang lengkap.</div>`;
+            document.getElementById('p').innerHTML = `<div style="padding:20px; text-align:center;">❌ Link tidak valid atau data kurang lengkap.</div>`;
         }
     </script>
 </body>
