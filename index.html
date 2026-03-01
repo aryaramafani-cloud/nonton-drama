@@ -10,16 +10,18 @@
     <script>
         const q = new URLSearchParams(window.location.search);
         const player = videojs('p');
-        async function play(b, c) {
+        async function play(dId, eps) {
             try {
-                const s = await (await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${b}&chapterId=${c}`)).json();
-                // Mencari format video H264 agar gambar muncul di Android
+                // PAKAI API FREEREELS STREAM
+                const res = await fetch(`https://api.sonzaix.indevs.in/freereels/stream?dramaId=${dId}&episode=${eps}`);
+                const s = await res.json();
                 const v = s.data.videoList.find(x => x.encode === 'H264') || s.data.videoList[0];
                 player.src({ src: v.playUrl, type: 'application/x-mpegURL' });
                 player.play();
+                player.one('ended', () => play(dId, parseInt(eps) + 1));
             } catch(e) { console.error(e); }
         }
-        if(q.get('bookId')) play(q.get('bookId'), q.get('chapterId'));
+        if(q.get('dramaId')) play(q.get('dramaId'), q.get('episode'));
     </script>
 </body>
 </html>
