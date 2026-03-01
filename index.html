@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="referrer" content="no-referrer">
-    <title>Dramaxofort Player</title>
+    <title>Dramaxofort Premium Player</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
         body { margin: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
@@ -79,9 +79,13 @@
                         }
                         video.addEventListener('error', showErrorPanel);
 
-                        // MESIN AUTO-NEXT EPISODE ANTI BUG
+                        // MESIN AUTO-NEXT EPISODE 100% BEBAS MACET
                         player.on('ended', () => {
-                            box.innerHTML += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;"><h2>⏭️ Memuat Episode Selanjutnya...</h2></div>`;
+                            // Buat layar loading menutupi video
+                            let overlay = document.createElement('div');
+                            overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;text-align:center;padding:20px;box-sizing:border-box;';
+                            overlay.innerHTML = `<h2>⏭️ Mencari Episode Selanjutnya...</h2>`;
+                            box.appendChild(overlay);
                             
                             const c = {
                                 "melolo": { p: "id", path: true }, "meloshort": { p: "dramaId", path: false },
@@ -109,33 +113,63 @@
                                     return [];
                                 }
 
-                                // Ekstraksi ID Kuat (Anti Bug Angka 0)
-                                function extractIdSafe(nx) {
-                                    if (nx.episodeId !== undefined && nx.episodeId !== null) return String(nx.episodeId);
-                                    if (nx.chapterId !== undefined && nx.chapterId !== null) return String(nx.chapterId);
-                                    if (nx.id !== undefined && nx.id !== null) return String(nx.id);
-                                    if (nx.video_id !== undefined && nx.video_id !== null) return String(nx.video_id);
-                                    if (nx.drama_id !== undefined && nx.drama_id !== null) return String(nx.drama_id);
-                                    if (nx.episodeIndex !== undefined && nx.episodeIndex !== null) return String(nx.episodeIndex);
-                                    if (nx.index !== undefined && nx.index !== null) return String(nx.index);
-                                    if (nx.episode !== undefined && nx.episode !== null) return String(nx.episode);
-                                    return null;
-                                }
-
                                 let epsList = getEpListJS(ddata.data || ddata);
                                 if(epsList.length > 0) {
-                                    let cIdx = epsList.findIndex(ep => extractIdSafe(ep) === String(e));
+                                    // PENCARI TINGKAT TINGGI (Mencocokkan semua ID yang mungkin)
+                                    let currentEpsParams = String(e).trim();
+                                    let cIdx = epsList.findIndex((ep, index) => {
+                                        let possibleValues = [
+                                            ep.episodeId, ep.chapterId, ep.id, ep.video_id, ep.drama_id, 
+                                            ep.episodeIndex, ep.index, ep.episode, ep.serial_number, (index + 1)
+                                        ];
+                                        return possibleValues.some(v => v != null && String(v).trim() === currentEpsParams);
+                                    });
                                     
-                                    if(cIdx !== -1 && cIdx + 1 < epsList.length) {
-                                        let nx = epsList[cIdx + 1];
-                                        let nextId = extractIdSafe(nx);
-                                        if(!nextId) nextId = cIdx + 2; 
-                                        
-                                        window.location.href = `?srv=${s}&id=${id}&eps=${nextId}`;
+                                    if(cIdx !== -1) {
+                                        if (cIdx + 1 < epsList.length) {
+                                            let nx = epsList[cIdx + 1];
+                                            let nextId = nx.episodeId ?? nx.chapterId ?? nx.id ?? nx.video_id ?? nx.drama_id ?? nx.episodeIndex ?? nx.index ?? nx.episode ?? nx.serial_number ?? (cIdx + 2);
+                                            
+                                            overlay.innerHTML = `<h2>🔄 Mengalihkan...</h2>`;
+                                            setTimeout(() => {
+                                                window.location.href = `?srv=${s}&id=${id}&eps=${nextId}`;
+                                            }, 800);
+                                        } else {
+                                            overlay.innerHTML = `<h2 style="color:#0f0;">✅ TAMAT</h2><p style="color:white;">Ini adalah episode terakhir.</p>`;
+                                        }
                                     } else {
-                                        box.innerHTML += `<div style="position:absolute;top:60%;width:100%;text-align:center;color:white;">✅ Ini adalah episode terakhir.</div>`;
+                                        overlay.innerHTML = `<h2 style="color:yellow;">⚠️ Urutan Terputus</h2><p style="color:white;">Silakan kembali ke Bot Telegram untuk memilih episode berikutnya.</p>`;
                                     }
+                                } else {
+                                    overlay.innerHTML = `<h2 style="color:red;">❌ Data Gagal Dimuat</h2>`;
                                 }
+                            }).catch(err => {
+                                overlay.innerHTML = `<h2 style="color:red;">❌ Server Terputus</h2>`;
+                            });
+                        });
+
+                        if (vidUrl.includes('.m3u8')) {
+                            if (Hls.isSupported()) {
+                                const hls = new Hls(); hls.loadSource(vidUrl); hls.attachMedia(video);
+                                hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+                                hls.on(Hls.Events.ERROR, function (event, data) { if (data.fatal) showErrorPanel(); });
+                            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                video.src = vidUrl; video.addEventListener('loadedmetadata', () => player.play());
+                            }
+                        } else {
+                            video.src = vidUrl; player.play();
+                        }
+                    } else {
+                        document.getElementById('player-container').innerHTML = `<div class="debug-box"><h3>[DEBUG] VIDEO TIDAK KETEMU</h3>${JSON.stringify(data, null, 2)}</div>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('status-text').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke Database Pusat.</span>`;
+                });
+        }
+    </script>
+</body>
+</html>                                }
                             });
                         });
 
