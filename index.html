@@ -11,13 +11,13 @@
     </style>
 </head>
 <body>
-    <div class="p-box" id="p">Memuat Video...</div>
+    <div class="p-box" id="p">⏳ Sedang Memuat Video...</div>
     <script>
         const u = new URLSearchParams(window.location.search);
         const s = u.get('srv'), id = u.get('id'), e = u.get('eps');
         if (s && id && e) {
             let v = "";
-            // LOGIKA 8 SERVER SESUAI LIST API KAMU (Fix Video Not Found)
+            // LOGIKA 8 SERVER SESUAI API KAMU
             if (s === "melolo") v = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
             else if (s === "meloshort") v = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
             else if (s === "goodshort") v = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
