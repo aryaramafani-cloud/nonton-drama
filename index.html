@@ -21,7 +21,7 @@
     </div>
 
     <script>
-        // Membaca parameter ?srv=...&id=...&eps=... dari link bot.py
+        // Membaca parameter srv, id, dan eps dari bot.py Kakak
         const params = new URLSearchParams(window.location.search);
         const srv = params.get('srv')?.toLowerCase();
         const id = params.get('id');
@@ -32,20 +32,20 @@
             
             let videoUrl = "";
 
-            // --- LOGIKA SINKRONISASI 8 SERVER (Cocok dengan bot.py) ---
+            // --- LOGIKA OTOMATIS 8 SERVER (Sesuai Mapping Bot.py) ---
             if (srv === "melolo" || srv === "dramabox") {
-                // Sesuai bot.py: Server ini menggunakan format Path (/id/eps)
+                // Server ini butuh format Path: /video/id/eps
                 videoUrl = `https://api.sonzaix.indevs.in/${srv}/video/${id}/${eps}`;
             } 
             else {
-                // Server lainnya menggunakan Query (?key=id&eps=eps)
-                let key = "id"; // Default untuk Dramawave
+                // Server lainnya butuh format Query: ?kunci=id&eps=eps
+                let key = "id"; // Kunci default
                 
-                // Cek mapping parameter unik sesuai SERVERS di bot.py
+                // Cek kunci unik tiap server (Sinkron dengan SERVERS di bot.py)
                 if (["meloshort", "freereels", "netshort"].includes(srv)) {
-                    key = "dramaId"; // Cocok dengan 'p': 'dramaId' di bot.py
+                    key = "dramaId"; // Server ini butuh dramaId
                 } else if (["goodshort", "reelshort"].includes(srv)) {
-                    key = "bookId";  // Cocok dengan 'p': 'bookId' di bot.py
+                    key = "bookId";  // Server ini butuh bookId
                 }
 
                 videoUrl = `https://api.sonzaix.indevs.in/${srv}/video?${key}=${id}&eps=${eps}`;
@@ -53,7 +53,7 @@
             
             document.getElementById('p').innerHTML = `<iframe src="${videoUrl}" allowfullscreen></iframe>`;
         } else {
-            document.getElementById('p').innerHTML = `<div style="padding:20px; text-align:center;">❌ Data tidak lengkap. Silakan buka lewat bot.</div>`;
+            document.getElementById('p').innerHTML = `<div style="padding:20px; text-align:center;">❌ Data kurang lengkap. Buka lewat bot.</div>`;
         }
     </script>
 </body>
