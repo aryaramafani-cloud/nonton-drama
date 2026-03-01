@@ -28,7 +28,7 @@
                 // 1. Ambil Link Video
                 const streamRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${bId}&chapterId=${cId}`);
                 const streamData = await streamRes.json();
-                const videoUrl = streamData.data.videoList[0].playUrl;
+                const videoUrl = streamData.data.videoList[1].playUrl;
 
                 // 2. Ambil Info Drama untuk Auto-Play
                 const detailRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/detail?bookId=${bId}`);
