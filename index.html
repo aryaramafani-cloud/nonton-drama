@@ -1,43 +1,105 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dramaxofort Player</title>
-    <style>
-        body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-        .p-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px #0ff; }
-        iframe { width: 100%; height: 100%; border: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dramaxofort Player</title>
+
+<style>
+body{
+    margin:0;
+    background:#000;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    font-family:sans-serif;
+}
+.p-box{
+    width:95%;
+    max-width:900px;
+    aspect-ratio:16/9;
+    background:#111;
+    border:2px solid #00ffff;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 0 20px #00ffff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+}
+iframe{
+    width:100%;
+    height:100%;
+    border:none;
+}
+.err{
+    color:red;
+    padding:20px;
+}
+</style>
 </head>
+
 <body>
-    <div class="p-box" id="p">⏳ Sedang Memuat Video...</div>
-    <script>
-        const u = new URLSearchParams(window.location.search);
-        const s = u.get('srv'), id = u.get('id'), e = u.get('eps');
-        if (s && id && e) {
-            let v = "";
-            // --- LOGIKA MASTER 8 SERVER (SINKRON DENGAN BOT.PY) ---
-            if (s === "melolo") {
-                v = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
-            } else if (s === "meloshort") {
-                v = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
-            } else if (s === "goodshort") {
-                v = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
-            } else if (s === "dramawave") {
-                v = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${e}`;
-            } else if (s === "reelshort") {
-                v = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${e}`;
-            } else if (s === "freereels") {
-                v = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${e}`;
-            } else if (s === "netshort") {
-                v = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${e}`;
-            } else if (s === "dramabox") {
-                v = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
-            }
-            
-            document.getElementById('p').innerHTML = `<iframe src="${v}" allowfullscreen></iframe>`;
-        }
-    </script>
+
+<div class="p-box" id="player">
+    ⏳ Sedang Memuat Video...
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const srv = params.get("srv");
+const id  = params.get("id");
+const eps = params.get("eps");
+
+const box = document.getElementById("player");
+
+if(!srv || !id || !eps){
+    box.innerHTML = "<div class='err'>Parameter tidak lengkap!</div>";
+}else{
+
+    let streamURL = "";
+
+    // ===============================
+    // LOGIKA 8 SERVER (SUDAH FIX)
+    // ===============================
+
+    if (srv === "melolo") {
+        streamURL = `https://api.sonzaix.indevs.in/melolo/stream/${eps}`;
+
+    } else if (srv === "meloshort") {
+        streamURL = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${eps}`;
+
+    } else if (srv === "goodshort") {
+        streamURL = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${eps}`;
+
+    } else if (srv === "dramawave") {
+        streamURL = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${eps}`;
+
+    } else if (srv === "reelshort") {
+        streamURL = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${eps}`;
+
+    } else if (srv === "freereels") {
+        streamURL = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${eps}`;
+
+    } else if (srv === "netshort") {
+        // NETSHORT TIDAK PAKAI EPISODE
+        streamURL = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${id}`;
+
+    } else if (srv === "dramabox") {
+        streamURL = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${eps}`;
+    }
+
+    if(streamURL){
+        box.innerHTML = `<iframe src="${streamURL}" allowfullscreen></iframe>`;
+    }else{
+        box.innerHTML = "<div class='err'>Server tidak dikenali!</div>";
+    }
+}
+</script>
+
 </body>
 </html>
