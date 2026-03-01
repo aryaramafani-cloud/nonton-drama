@@ -6,13 +6,14 @@
     <title>Dramaxofort Player</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; text-align: center; }
         .p-box { width: 100%; height: 100vh; max-width: 450px; background: #000; display: flex; justify-content: center; align-items: center; position: relative; }
+        video { width: 100%; height: 100%; object-fit: contain; background: #000; }
     </style>
 </head>
 <body>
     <div class="p-box" id="player-container">
-        <span style="color:#0ff; font-family:sans-serif;">⏳ Mencari Jalur Video...</span>
+        <span style="color:#0ff;">⏳ Menarik Gambar Video...</span>
     </div>
 
     <script>
@@ -34,32 +35,33 @@
                 .then(r => r.json())
                 .then(data => {
                     let vidUrl = "";
-
-                    // MESIN PENCARI VIDEO SUPER AGRESIF
-                    function cariVideo(obj) {
+                    function scan(obj) {
                         if (vidUrl) return;
-                        
-                        // Cek laci populer dulu
                         if (obj.h264) { vidUrl = obj.h264; return; }
                         if (obj.play_url) { vidUrl = obj.play_url; return; }
                         if (obj.video_url) { vidUrl = obj.video_url; return; }
                         if (obj.url && typeof obj.url === 'string' && obj.url.includes('http')) { vidUrl = obj.url; return; }
-
-                        // Geledah seluruh isi json
                         for (let k in obj) {
                             if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8')) && obj[k].startsWith('http')) {
                                 vidUrl = obj[k]; return;
-                            } else if (typeof obj[k] === 'object' && obj[k] !== null) {
-                                cariVideo(obj[k]);
-                            }
+                            } else if (typeof obj[k] === 'object' && obj[k] !== null) { scan(obj[k]); }
                         }
                     }
-                    cariVideo(data); // Mulai menggeledah
+                    scan(data);
 
                     if (vidUrl) {
                         const box = document.getElementById('player-container');
-                        box.innerHTML = `<video id="my-video" controls autoplay playsinline webkit-playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`;
+                        box.innerHTML = `<video id="my-video" controls autoplay playsinline webkit-playsinline></video>`;
                         const video = document.getElementById('my-video');
+                        
+                        // ALARM ERROR: Jika video gagal dimuat / muter-muter
+                        video.addEventListener('error', () => {
+                            let err = "Akses ditolak oleh Server Video (CORS)";
+                            if(video.error && video.error.code === 2) err = "Koneksi Jaringan Terputus";
+                            else if (video.error && video.error.code === 3) err = "Format Video Rusak";
+                            
+                            box.innerHTML = `<div style="padding:20px;">❌ <b>Video Gagal Diputar</b><br><br><small>${err}</small><br><br><a href="${vidUrl}" target="_blank" style="color:#0ff; text-decoration:none; padding:10px 20px; border:1px solid #0ff; border-radius:10px; display:inline-block; margin-top:15px;">🔗 Buka Link Asli</a></div>`;
+                        });
 
                         if (vidUrl.includes('.m3u8')) {
                             if (Hls.isSupported()) {
@@ -67,6 +69,13 @@
                                 hls.loadSource(vidUrl);
                                 hls.attachMedia(video);
                                 hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+                                
+                                // Deteksi error khusus M3U8
+                                hls.on(Hls.Events.ERROR, function (event, data) {
+                                    if (data.fatal) {
+                                        box.innerHTML = `<div style="padding:20px;">❌ <b>Server Lemot / Ditolak</b><br><br><small>Gunakan tombol 'Buka di Chrome' pada pojok kanan atas Telegram.</small></div>`;
+                                    }
+                                });
                             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                                 video.src = vidUrl;
                                 video.addEventListener('loadedmetadata', () => video.play());
@@ -76,11 +85,11 @@
                             video.play();
                         }
                     } else {
-                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Video dihapus oleh Server.</span>`;
+                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Video sudah dihapus oleh pihak server.</span>`;
                     }
                 })
                 .catch(err => {
-                    document.getElementById('player-container').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke API.</span>`;
+                    document.getElementById('player-container').innerHTML = `<span style="color:red;">❌ Gagal terhubung ke API pusat.</span>`;
                 });
         }
     </script>
