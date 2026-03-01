@@ -17,15 +17,24 @@
         const s = u.get('srv'), id = u.get('id'), e = u.get('eps');
         if (s && id && e) {
             let v = "";
-            // LOGIKA 8 SERVER SESUAI API KAMU
-            if (s === "melolo") v = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
-            else if (s === "meloshort") v = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
-            else if (s === "goodshort") v = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
-            else if (s === "dramawave") v = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${e}`;
-            else if (s === "reelshort") v = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${e}`;
-            else if (s === "freereels") v = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${e}`;
-            else if (s === "netshort") v = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${e}`;
-            else if (s === "dramabox") v = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
+            // --- LOGIKA MASTER 8 SERVER (SINKRON DENGAN BOT.PY) ---
+            if (s === "melolo") {
+                v = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
+            } else if (s === "meloshort") {
+                v = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
+            } else if (s === "goodshort") {
+                v = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
+            } else if (s === "dramawave") {
+                v = `https://api.sonzaix.indevs.in/dramawave/stream?dramaId=${id}&episode=${e}`;
+            } else if (s === "reelshort") {
+                v = `https://api.sonzaix.indevs.in/reelshort/stream?bookId=${id}&chapterId=${e}`;
+            } else if (s === "freereels") {
+                v = `https://api.sonzaix.indevs.in/freereels/stream?dramaId=${id}&episode=${e}`;
+            } else if (s === "netshort") {
+                v = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${e}`;
+            } else if (s === "dramabox") {
+                v = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
+            }
             
             document.getElementById('p').innerHTML = `<iframe src="${v}" allowfullscreen></iframe>`;
         }
