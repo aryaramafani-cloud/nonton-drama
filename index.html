@@ -5,21 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="referrer" content="no-referrer">
     <title>Dramaxofort Premium Player</title>
-    
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
         body { margin: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
         .p-box { width: 100%; height: 100vh; max-width: 450px; position: relative; background: #000; }
         video { width: 100%; height: 100%; object-fit: contain; }
-        
-        /* Modifikasi Warna Tema (Cyan) */
         :root { --plyr-color-main: #00ffff; }
         .loading-text { color:#0ff; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; width:100%; font-weight:bold; }
+        .btn-direct { background: #00ffff; color: #000; padding: 12px 20px; border-radius: 30px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 15px; font-size: 14px;}
     </style>
 </head>
 <body>
     <div class="p-box" id="player-container">
-        <div class="loading-text" id="status-text">⏳ Mengambil Jalur Video...</div>
+        <div class="loading-text" id="status-text">⏳ Menganalisa Video...</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -44,37 +42,60 @@
                 .then(r => r.json())
                 .then(data => {
                     let vidUrl = "";
-                    function scan(obj) {
+                    
+                    // MESIN PENCARI VIDEO ANTI NETSHORT ERROR
+                    function findVideo(obj) {
                         if (vidUrl) return;
-                        if (obj.h264) { vidUrl = obj.h264; return; }
-                        if (obj.play_url) { vidUrl = obj.play_url; return; }
-                        if (obj.video_url) { vidUrl = obj.video_url; return; }
-                        if (obj.url && typeof obj.url === 'string' && obj.url.includes('http')) { vidUrl = obj.url; return; }
-                        for (let k in obj) {
-                            if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8')) && obj[k].startsWith('http')) {
-                                vidUrl = obj[k]; return;
-                            } else if (typeof obj[k] === 'object' && obj[k] !== null) { scan(obj[k]); }
+                        // Prioritas 1: Kunci yang pasti nyimpen video
+                        const keys = ['h264', 'play_url', 'video_url', 'stream_url', 'url', 'src', 'm3u8', 'mp4_url'];
+                        if (typeof obj === 'object' && obj !== null) {
+                            for (let k of keys) {
+                                if (obj[k] && typeof obj[k] === 'string' && obj[k].startsWith('http')) {
+                                    vidUrl = obj[k]; return;
+                                }
+                            }
+                        }
+                        // Prioritas 2: Cari sedalam mungkin
+                        if (typeof obj === 'object' && obj !== null) {
+                            for (let key in obj) {
+                                if (typeof obj[key] === 'object') {
+                                    findVideo(obj[key]);
+                                } else if (typeof obj[key] === 'string' && obj[key].startsWith('http')) {
+                                    if (obj[key].includes('.m3u8') || obj[key].includes('.mp4')) {
+                                        vidUrl = obj[key]; return;
+                                    }
+                                }
+                            }
                         }
                     }
-                    scan(data);
+                    findVideo(data);
 
                     if (vidUrl) {
                         const box = document.getElementById('player-container');
                         box.innerHTML = `<video id="my-video" controls playsinline webkit-playsinline></video>`;
                         const video = document.getElementById('my-video');
                         
-                        // INISIALISASI PEMUTAR PREMIUM (PLYR)
                         const player = new Plyr(video, {
                             controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
                             settings: ['speed'],
                             speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
                         });
 
-                        // FITUR AUTO-NEXT EPISODE
+                        function showErrorPanel() {
+                            let safeLink = vidUrl.includes('.m3u8') ? `https://hlsjs.video-dev.org/demo/?src=${encodeURIComponent(vidUrl)}` : vidUrl;
+                            box.innerHTML = `
+                                <div style="padding:20px; color:white; text-align:center;">
+                                    ❌ <b>Browser Anda Diblokir (CORS)</b><br><br>
+                                    <small>Gunakan Web Player Darurat agar video berputar tanpa di-download.</small><br>
+                                    <a href="${safeLink}" target="_blank" class="btn-direct">🚀 BUKA PLAYER DARURAT</a>
+                                </div>`;
+                        }
+                        video.addEventListener('error', showErrorPanel);
+
+                        // MESIN AUTO-NEXT EPISODE YANG DIPERBAIKI
                         player.on('ended', () => {
-                            box.innerHTML += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;"><h2>⏭️ Memuat Episode Selanjutnya...</h2></div>`;
+                            box.innerHTML += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:99;display:flex;align-items:center;justify-content:center;color:#0ff;flex-direction:column;"><h2>⏭️ Memuat Berikutnya...</h2></div>`;
                             
-                            // Detektif untuk mencari ID Episode berikutnya
                             const c = {
                                 "melolo": { p: "id", path: true }, "meloshort": { p: "dramaId", path: false },
                                 "goodshort": { p: "bookId", path: false }, "dramawave": { p: "id", path: false },
@@ -85,16 +106,30 @@
                             let detailUrl = c.path ? `https://api.sonzaix.indevs.in/${s}/detail/${id}` : `https://api.sonzaix.indevs.in/${s}/detail?${c.p}=${id}`;
                             
                             fetch(detailUrl).then(res=>res.json()).then(ddata => {
-                                let rd = ddata.data || ddata;
-                                if(Array.isArray(rd)) rd = rd[0];
-                                
-                                let epsList = rd.episodes || rd.video_list || rd.episode_list || rd.list || rd.chapter_list || rd.chapters || rd.videos;
-                                if(epsList && Array.isArray(epsList)) {
+                                // Radar pencari list episode di JavaScript
+                                function getEpListJS(d) {
+                                    if(Array.isArray(d) && d.length > 0 && typeof d[0] === 'object') return d;
+                                    if(typeof d === 'object' && d !== null) {
+                                        for(let k of ['episodes', 'episode_list', 'video_list', 'list', 'chapter_list', 'chapters', 'videos', 'data']) {
+                                            if(d[k] && Array.isArray(d[k]) && d[k].length > 0) return d[k];
+                                        }
+                                        for(let k in d) {
+                                            if(typeof d[k] === 'object') {
+                                                let r = getEpListJS(d[k]);
+                                                if(r.length > 0) return r;
+                                            }
+                                        }
+                                    }
+                                    return [];
+                                }
+
+                                let epsList = getEpListJS(ddata);
+                                if(epsList.length > 0) {
                                     let cIdx = epsList.findIndex(ep => String(ep.episodeId||ep.chapterId||ep.id||ep.video_id||ep.drama_id||ep.episodeIndex||ep.index||ep.episode) === String(e));
                                     
                                     if(cIdx !== -1 && cIdx + 1 < epsList.length) {
-                                        let nextEp = epsList[cIdx + 1];
-                                        let nextId = nextEp.episodeId || nextEp.chapterId || nextEp.id || nextEp.video_id || nextEp.drama_id || nextEp.episodeIndex || nextEp.index || nextEp.episode;
+                                        let nx = epsList[cIdx + 1];
+                                        let nextId = nx.episodeId || nx.chapterId || nx.id || nx.video_id || nx.drama_id || nx.episodeIndex || nx.index || nx.episode;
                                         window.location.href = `?srv=${s}&id=${id}&eps=${nextId}`;
                                     } else {
                                         box.innerHTML += `<div style="position:absolute;top:60%;width:100%;text-align:center;color:white;">✅ Ini adalah episode terakhir.</div>`;
@@ -103,23 +138,19 @@
                             });
                         });
 
-                        // EKSEKUSI PEMUTARAN
                         if (vidUrl.includes('.m3u8')) {
                             if (Hls.isSupported()) {
-                                const hls = new Hls();
-                                hls.loadSource(vidUrl);
-                                hls.attachMedia(video);
+                                const hls = new Hls(); hls.loadSource(vidUrl); hls.attachMedia(video);
                                 hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+                                hls.on(Hls.Events.ERROR, function (event, data) { if (data.fatal) showErrorPanel(); });
                             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                video.src = vidUrl;
-                                video.addEventListener('loadedmetadata', () => player.play());
+                                video.src = vidUrl; video.addEventListener('loadedmetadata', () => player.play());
                             }
                         } else {
-                            video.src = vidUrl;
-                            player.play();
+                            video.src = vidUrl; player.play();
                         }
                     } else {
-                        document.getElementById('status-text').innerHTML = `<span style="color:red;">⚠️ Video dihapus oleh Server Pusat.</span>`;
+                        document.getElementById('status-text').innerHTML = `<span style="color:red;">⚠️ Akses API Ditolak (Video tidak ditemukan).</span>`;
                     }
                 })
                 .catch(err => {
