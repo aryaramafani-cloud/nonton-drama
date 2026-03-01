@@ -6,22 +6,22 @@
     <title>Dramaxofort Player</title>
     <style>
         body { margin: 0; background: #000; font-family: sans-serif; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .player-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #00ffff; border-radius: 12px; overflow: hidden; box-shadow: 0 0 30px rgba(0, 255, 255, 0.4); }
+        .player-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #00ffff; border-radius: 12px; overflow: hidden; box-shadow: 0 0 25px rgba(0,255,255,0.4); }
         iframe { width: 100%; height: 100%; border: none; }
         .info { margin-top: 20px; text-align: center; }
-        .btn { margin-top: 20px; padding: 12px 35px; background: #00ffff; color: #000; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; transition: 0.3s; }
-        .btn:hover { background: #00cccc; transform: scale(1.05); }
+        .btn { margin-top: 15px; padding: 12px 35px; background: #00ffff; color: #000; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; }
     </style>
 </head>
 <body>
     <div class="player-box" id="p">⏳ Sedang Menyiapkan Video...</div>
     <div class="info">
-        <h1 style="color:#00ffff; font-size:1.4rem; margin:0; letter-spacing:2px;">DRAMAXOFORT PLAYER</h1>
+        <h1 style="color:#00ffff; font-size:1.4rem; margin:0;">DRAMAXOFORT PLAYER</h1>
         <p id="m" style="color:#888; margin:10px 0;">Server: - | Episode: -</p>
         <a href="https://t.me/dramaxofort_bot" class="btn">KEMBALI KE BOT</a>
     </div>
 
     <script>
+        // Membaca parameter ?srv=...&id=...&eps=... dari link bot.py
         const params = new URLSearchParams(window.location.search);
         const srv = params.get('srv')?.toLowerCase();
         const id = params.get('id');
@@ -29,24 +29,31 @@
 
         if (srv && id && eps) {
             document.getElementById('m').innerText = `Server: ${srv.toUpperCase()} | Episode: ${eps}`;
+            
             let videoUrl = "";
 
-            // --- LOGIKA FIX ENDPOINT NOT FOUND ---
+            // --- LOGIKA SINKRONISASI 8 SERVER (Cocok dengan bot.py) ---
             if (srv === "melolo" || srv === "dramabox") {
-                // Gunakan format PATH untuk server ini
+                // Sesuai bot.py: Server ini menggunakan format Path (/id/eps)
                 videoUrl = `https://api.sonzaix.indevs.in/${srv}/video/${id}/${eps}`;
-            } else {
-                // Gunakan format QUERY untuk server lainnya
-                let key = "id"; // Default
-                if (["meloshort", "freereels", "netshort"].includes(srv)) key = "dramaId";
-                if (["goodshort", "reelshort"].includes(srv)) key = "bookId";
+            } 
+            else {
+                // Server lainnya menggunakan Query (?key=id&eps=eps)
+                let key = "id"; // Default untuk Dramawave
                 
+                // Cek mapping parameter unik sesuai SERVERS di bot.py
+                if (["meloshort", "freereels", "netshort"].includes(srv)) {
+                    key = "dramaId"; // Cocok dengan 'p': 'dramaId' di bot.py
+                } else if (["goodshort", "reelshort"].includes(srv)) {
+                    key = "bookId";  // Cocok dengan 'p': 'bookId' di bot.py
+                }
+
                 videoUrl = `https://api.sonzaix.indevs.in/${srv}/video?${key}=${id}&eps=${eps}`;
             }
             
             document.getElementById('p').innerHTML = `<iframe src="${videoUrl}" allowfullscreen></iframe>`;
         } else {
-            document.getElementById('p').innerHTML = `<div style="padding:20px; text-align:center;">❌ Data tidak lengkap. Silakan kembali ke bot.</div>`;
+            document.getElementById('p').innerHTML = `<div style="padding:20px; text-align:center;">❌ Data tidak lengkap. Silakan buka lewat bot.</div>`;
         }
     </script>
 </body>
