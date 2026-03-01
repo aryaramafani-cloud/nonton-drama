@@ -9,6 +9,7 @@
         .p-box { width: 100%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; text-align: center; padding: 10px; box-sizing: border-box;}
         video { width: 100%; height: 100%; outline: none; border-radius: 6px; }
         .btn { margin-top: 20px; padding: 10px 25px; background: #0ff; color: #000; text-decoration: none; font-weight: bold; border-radius: 20px; }
+        pre { text-align: left; background: #222; padding: 10px; border-radius: 5px; width: 100%; height: 90%; overflow: auto; color: #0f0; font-size: 13px; margin: 0; }
     </style>
 </head>
 <body>
@@ -21,7 +22,6 @@
 
         if (s && id && e) {
             let apiLink = "";
-            // TATA LETAK URL 100% SESUAI LIST API DARI KAMU
             if (s === "melolo") apiLink = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
             else if (s === "meloshort") apiLink = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
             else if (s === "goodshort") apiLink = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
@@ -35,32 +35,59 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.error || data.message === "error" || data.code !== 200 && !data.data) {
-                        document.getElementById('player-container').innerHTML = `<span style="color:red; font-size:1.2rem;">❌ Gagal: Server menolak (Video Not Found)</span><br><br><small>Info API: ${JSON.stringify(data)}</small>`;
+                        document.getElementById('player-container').innerHTML = `<span style="color:red; font-size:1.2rem;">❌ Server API Menolak</span><br><br><small>${JSON.stringify(data)}</small>`;
                         return;
                     }
 
-                    // AMBIL VIDEO H264
                     let realVideoUrl = "";
+
+                    // CARA 1: Cek nama laci yang umum
                     if (data.data && data.data.h264) realVideoUrl = data.data.h264;
                     else if (data.data && data.data.video_list && data.data.video_list.h264) realVideoUrl = data.data.video_list.h264;
                     else if (data.data && data.data.url) realVideoUrl = data.data.url;
+                    else if (data.data && data.data.stream_url) realVideoUrl = data.data.stream_url;
                     else if (data.h264) realVideoUrl = data.h264;
 
+                    // CARA 2: Auto-Scanner (Mencari link .mp4 / .m3u8 di mana saja)
+                    if (!realVideoUrl) {
+                        function scanForVideo(obj) {
+                            if (realVideoUrl) return;
+                            for (let k in obj) {
+                                if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8'))) {
+                                    if (obj[k].startsWith('http')) {
+                                        realVideoUrl = obj[k];
+                                        return;
+                                    }
+                                } else if (typeof obj[k] === 'object' && obj[k] !== null) {
+                                    scanForVideo(obj[k]);
+                                }
+                            }
+                        }
+                        scanForVideo(data);
+                    }
+
+                    // TAMPILKAN HASILNYA
                     if (realVideoUrl) {
                         document.getElementById('player-container').innerHTML = `
                             <video controls autoplay>
                                 <source src="${realVideoUrl}" type="video/mp4">
-                                Browser error.
+                                Browser Anda tidak support video ini.
                             </video>`;
                     } else {
-                        document.getElementById('player-container').innerHTML = `⚠️ Link h264 tidak ada di dalam respon API.`;
+                        // TAMPILKAN ISI API AGAR BISA DIBACA
+                        document.getElementById('player-container').innerHTML = `
+                            <div style="width:100%; height:100%; display:flex; flex-direction:column;">
+                                <p style="color:yellow; margin:0 0 5px 0; font-size:12px;">⚠️ Video otomatis tidak ketemu. Tolong Screenshot Teks Hijau ini:</p>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </div>
+                        `;
                     }
                 })
                 .catch(err => {
-                    document.getElementById('player-container').innerHTML = `❌ Gagal mengambil data (Koneksi bermasalah).`;
+                    document.getElementById('player-container').innerHTML = `❌ Gagal mengambil data API.`;
                 });
         } else {
-            document.getElementById('player-container').innerHTML = "❌ Parameter kosong.";
+            document.getElementById('player-container').innerHTML = "❌ Parameter link kosong.";
         }
     </script>
 </body>
