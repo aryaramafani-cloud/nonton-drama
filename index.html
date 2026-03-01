@@ -7,56 +7,20 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         body { 
-            margin: 0; 
-            background: #000; 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            font-family: sans-serif; 
-            overflow: hidden; /* Biar tidak bisa digeser-geser */
+            margin: 0; background: #000; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; height: 100vh; overflow: hidden; 
         }
-        /* Desain Layar Tegak (9:16) ala TikTok */
+        /* UKURAN LAYAR TIKTOK (9:16) BERSIH TANPA TOMBOL */
         .p-box { 
-            width: 100%; 
-            height: 100vh; 
-            max-width: 500px; /* Pas untuk ukuran HP */
-            background: #000; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            text-align: center; 
-            position: relative;
-        }
-        video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain; /* Biar subtitle tidak kepotong */
-            outline: none; 
-        }
-        /* Tombol melayang di bawah layar */
-        .btn-float { 
-            position: absolute; 
-            bottom: 30px; 
-            padding: 10px 25px; 
-            background: rgba(0, 255, 255, 0.8); 
-            color: #000; 
-            text-decoration: none; 
-            font-weight: bold; 
-            border-radius: 50px; 
-            z-index: 10;
-            backdrop-filter: blur(5px);
+            width: 100%; height: 100vh; max-width: 450px; background: #000; 
+            display: flex; justify-content: center; align-items: center; position: relative; 
         }
     </style>
 </head>
 <body>
     <div class="p-box" id="player-container">
-        <span style="color:#0ff;">⏳ Memuat Video...</span>
+        <span style="color:#0ff; font-family:sans-serif;">⏳ Menarik Gambar Video...</span>
     </div>
-    
-    <a href="https://t.me/dramaxofort_bot" class="btn-float">⬅️ KEMBALI KE BOT</a>
 
     <script>
         const u = new URLSearchParams(window.location.search);
@@ -74,58 +38,49 @@
             else if (s === "dramabox") apiLink = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
 
             fetch(apiLink)
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
-                    let realVideoUrl = "";
+                    let vidUrl = "";
+                    if (data.data && data.data.h264) vidUrl = data.data.h264;
+                    else if (data.data && data.data.video_list && data.data.video_list.h264) vidUrl = data.data.video_list.h264;
+                    else if (data.data && data.data.url) vidUrl = data.data.url;
+                    else if (data.h264) vidUrl = data.h264;
 
-                    // Cek lokasi video
-                    if (data.data && data.data.h264) realVideoUrl = data.data.h264;
-                    else if (data.data && data.data.video_list && data.data.video_list.h264) realVideoUrl = data.data.video_list.h264;
-                    else if (data.data && data.data.url) realVideoUrl = data.data.url;
-                    else if (data.data && data.data.stream_url) realVideoUrl = data.data.stream_url;
-                    else if (data.h264) realVideoUrl = data.h264;
-
-                    // Mesin Pencari Otomatis jika masih belum ketemu
-                    if (!realVideoUrl) {
-                        function scanForVideo(obj) {
-                            if (realVideoUrl) return;
+                    if (!vidUrl) {
+                        function scan(obj) {
+                            if (vidUrl) return;
                             for (let k in obj) {
-                                if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8'))) {
-                                    if (obj[k].startsWith('http')) { realVideoUrl = obj[k]; return; }
-                                } else if (typeof obj[k] === 'object' && obj[k] !== null) { scanForVideo(obj[k]); }
+                                if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8')) && obj[k].startsWith('http')) {
+                                    vidUrl = obj[k]; return;
+                                } else if (typeof obj[k] === 'object' && obj[k] !== null) { scan(obj[k]); }
                             }
                         }
-                        scanForVideo(data);
+                        scan(data);
                     }
 
-                    // EKSEKUSI PEMUTARAN VIDEO
-                    if (realVideoUrl) {
-                        const container = document.getElementById('player-container');
-                        container.innerHTML = `<video id="my-video" controls autoplay playsinline></video>`;
+                    if (vidUrl) {
+                        const box = document.getElementById('player-container');
+                        // MEMAKSA GAMBAR MUNCUL FULL SCREEN TIKTOK
+                        box.innerHTML = `<video id="my-video" controls autoplay playsinline webkit-playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>`;
                         const video = document.getElementById('my-video');
 
-                        // Cek apakah video berformat .m3u8 (HLS)
-                        if (realVideoUrl.includes('.m3u8')) {
+                        if (vidUrl.includes('.m3u8')) {
                             if (Hls.isSupported()) {
                                 const hls = new Hls();
-                                hls.loadSource(realVideoUrl);
+                                hls.loadSource(vidUrl);
                                 hls.attachMedia(video);
-                                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+                                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
                             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                                video.src = realVideoUrl;
-                                video.addEventListener('loadedmetadata', function() { video.play(); });
+                                video.src = vidUrl;
+                                video.addEventListener('loadedmetadata', () => video.play());
                             }
                         } else {
-                            // Jika format .mp4 biasa
-                            video.src = realVideoUrl;
+                            video.src = vidUrl;
                             video.play();
                         }
                     } else {
-                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Link Video gagal diekstrak.</span>`;
+                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Gagal menemukan file video.</span>`;
                     }
-                })
-                .catch(err => {
-                    document.getElementById('player-container').innerHTML = `❌ Gagal memuat API.`;
                 });
         }
     </script>
