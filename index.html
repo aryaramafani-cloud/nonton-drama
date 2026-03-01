@@ -2,19 +2,61 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dramaxofort Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-        .p-box { width: 100%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; text-align: center; padding: 10px; box-sizing: border-box;}
-        video { width: 100%; height: 100%; outline: none; border-radius: 6px; }
-        .btn { margin-top: 20px; padding: 10px 25px; background: #0ff; color: #000; text-decoration: none; font-weight: bold; border-radius: 20px; }
-        pre { text-align: left; background: #222; padding: 10px; border-radius: 5px; width: 100%; height: 90%; overflow: auto; color: #0f0; font-size: 13px; margin: 0; }
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            font-family: sans-serif; 
+            overflow: hidden; /* Biar tidak bisa digeser-geser */
+        }
+        /* Desain Layar Tegak (9:16) ala TikTok */
+        .p-box { 
+            width: 100%; 
+            height: 100vh; 
+            max-width: 500px; /* Pas untuk ukuran HP */
+            background: #000; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center; 
+            position: relative;
+        }
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; /* Biar subtitle tidak kepotong */
+            outline: none; 
+        }
+        /* Tombol melayang di bawah layar */
+        .btn-float { 
+            position: absolute; 
+            bottom: 30px; 
+            padding: 10px 25px; 
+            background: rgba(0, 255, 255, 0.8); 
+            color: #000; 
+            text-decoration: none; 
+            font-weight: bold; 
+            border-radius: 50px; 
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
     </style>
 </head>
 <body>
-    <div class="p-box" id="player-container">⏳ Menghubungkan ke API...</div>
-    <a href="https://t.me/dramaxofort_bot" class="btn">Kembali ke Bot</a>
+    <div class="p-box" id="player-container">
+        <span style="color:#0ff;">⏳ Memuat Video...</span>
+    </div>
+    
+    <a href="https://t.me/dramaxofort_bot" class="btn-float">⬅️ KEMBALI KE BOT</a>
 
     <script>
         const u = new URLSearchParams(window.location.search);
@@ -34,60 +76,57 @@
             fetch(apiLink)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.error || data.message === "error" || data.code !== 200 && !data.data) {
-                        document.getElementById('player-container').innerHTML = `<span style="color:red; font-size:1.2rem;">❌ Server API Menolak</span><br><br><small>${JSON.stringify(data)}</small>`;
-                        return;
-                    }
-
                     let realVideoUrl = "";
 
-                    // CARA 1: Cek nama laci yang umum
+                    // Cek lokasi video
                     if (data.data && data.data.h264) realVideoUrl = data.data.h264;
                     else if (data.data && data.data.video_list && data.data.video_list.h264) realVideoUrl = data.data.video_list.h264;
                     else if (data.data && data.data.url) realVideoUrl = data.data.url;
                     else if (data.data && data.data.stream_url) realVideoUrl = data.data.stream_url;
                     else if (data.h264) realVideoUrl = data.h264;
 
-                    // CARA 2: Auto-Scanner (Mencari link .mp4 / .m3u8 di mana saja)
+                    // Mesin Pencari Otomatis jika masih belum ketemu
                     if (!realVideoUrl) {
                         function scanForVideo(obj) {
                             if (realVideoUrl) return;
                             for (let k in obj) {
                                 if (typeof obj[k] === 'string' && (obj[k].includes('.mp4') || obj[k].includes('.m3u8'))) {
-                                    if (obj[k].startsWith('http')) {
-                                        realVideoUrl = obj[k];
-                                        return;
-                                    }
-                                } else if (typeof obj[k] === 'object' && obj[k] !== null) {
-                                    scanForVideo(obj[k]);
-                                }
+                                    if (obj[k].startsWith('http')) { realVideoUrl = obj[k]; return; }
+                                } else if (typeof obj[k] === 'object' && obj[k] !== null) { scanForVideo(obj[k]); }
                             }
                         }
                         scanForVideo(data);
                     }
 
-                    // TAMPILKAN HASILNYA
+                    // EKSEKUSI PEMUTARAN VIDEO
                     if (realVideoUrl) {
-                        document.getElementById('player-container').innerHTML = `
-                            <video controls autoplay>
-                                <source src="${realVideoUrl}" type="video/mp4">
-                                Browser Anda tidak support video ini.
-                            </video>`;
+                        const container = document.getElementById('player-container');
+                        container.innerHTML = `<video id="my-video" controls autoplay playsinline></video>`;
+                        const video = document.getElementById('my-video');
+
+                        // Cek apakah video berformat .m3u8 (HLS)
+                        if (realVideoUrl.includes('.m3u8')) {
+                            if (Hls.isSupported()) {
+                                const hls = new Hls();
+                                hls.loadSource(realVideoUrl);
+                                hls.attachMedia(video);
+                                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+                            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                video.src = realVideoUrl;
+                                video.addEventListener('loadedmetadata', function() { video.play(); });
+                            }
+                        } else {
+                            // Jika format .mp4 biasa
+                            video.src = realVideoUrl;
+                            video.play();
+                        }
                     } else {
-                        // TAMPILKAN ISI API AGAR BISA DIBACA
-                        document.getElementById('player-container').innerHTML = `
-                            <div style="width:100%; height:100%; display:flex; flex-direction:column;">
-                                <p style="color:yellow; margin:0 0 5px 0; font-size:12px;">⚠️ Video otomatis tidak ketemu. Tolong Screenshot Teks Hijau ini:</p>
-                                <pre>${JSON.stringify(data, null, 2)}</pre>
-                            </div>
-                        `;
+                        document.getElementById('player-container').innerHTML = `<span style="color:red;">⚠️ Link Video gagal diekstrak.</span>`;
                     }
                 })
                 .catch(err => {
-                    document.getElementById('player-container').innerHTML = `❌ Gagal mengambil data API.`;
+                    document.getElementById('player-container').innerHTML = `❌ Gagal memuat API.`;
                 });
-        } else {
-            document.getElementById('player-container').innerHTML = "❌ Parameter link kosong.";
         }
     </script>
 </body>
