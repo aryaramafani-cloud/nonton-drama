@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Drama Kalcer</title>
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+        .video-js { width: 100vw; height: 100vh; }
+        #info-overlay { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; pointer-events: none; z-index: 10; }
+    </style>
+</head>
+<body>
+    <div id="info-overlay">Memuat Drama...</div>
+    <video id="player" class="video-js vjs-big-play-centered" controls preload="auto" playsinline></video>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        let bookId = params.get('bookId');
+        let chapterId = params.get('chapterId');
+        const info = document.getElementById('info-overlay');
+        const player = videojs('player');
+
+        async function playDrama(bId, cId) {
+            try {
+                // 1. Ambil Link Video
+                const streamRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${bId}&chapterId=${cId}`);
+                const streamData = await streamRes.json();
+                const videoUrl = streamData.data.videoList[0].playUrl;
+
+                // 2. Ambil Info Drama untuk Auto-Play
+                const detailRes = await fetch(`https://api.sonzaix.indevs.in/reelshort/detail?bookId=${bId}`);
+                const detailData = await detailRes.json();
+                const videoList = detailData.data.video_list;
+                
+                // Cari index episode sekarang
+                const currentIndex = videoList.findIndex(v => v.chapterId === cId);
+                const currentEps = videoList[currentIndex];
+                info.innerText = `Memutar: ${detailData.data.drama_name} - ${currentEps.title}`;
+
+                player.src({ src: videoUrl, type: 'application/x-mpegURL' });
+                player.play();
+
+                // LOGIKA AUTO-PLAY
+                player.one('ended', () => {
+                    const nextEps = videoList[currentIndex + 1];
+                    if (nextEps && !nextEps.isLocked) {
+                        info.innerText = "Memutar Episode Selanjutnya...";
+                        playDrama(bId, nextEps.chapterId);
+                    } else {
+                        alert("Drama selesai atau episode berikutnya terkunci.");
+                    }
+                });
+
+            } catch (e) {
+                alert("Gagal memuat video. Pastikan koneksi stabil.");
+            }
+        }
+
+        if(bookId && chapterId) playDrama(bookId, chapterId);
+    </script>
+</body>
+</html>
