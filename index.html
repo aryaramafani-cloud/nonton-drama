@@ -6,13 +6,13 @@
     <title>Dramaxofort Player</title>
     <style>
         body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-        .p-box { width: 100%; max-width: 800px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; text-align: center; padding: 10px; box-sizing: border-box;}
+        .p-box { width: 100%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 8px; display: flex; justify-content: center; align-items: center; text-align: center; padding: 10px; box-sizing: border-box;}
         video { width: 100%; height: 100%; outline: none; border-radius: 6px; }
         .btn { margin-top: 20px; padding: 10px 25px; background: #0ff; color: #000; text-decoration: none; font-weight: bold; border-radius: 20px; }
     </style>
 </head>
 <body>
-    <div class="p-box" id="player-container">⏳ Mengambil Video (H264)...</div>
+    <div class="p-box" id="player-container">⏳ Menghubungkan ke API...</div>
     <a href="https://t.me/dramaxofort_bot" class="btn">Kembali ke Bot</a>
 
     <script>
@@ -21,7 +21,7 @@
 
         if (s && id && e) {
             let apiLink = "";
-            // 1. Tentukan Link API 8 Server
+            // TATA LETAK URL 100% SESUAI LIST API DARI KAMU
             if (s === "melolo") apiLink = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
             else if (s === "meloshort") apiLink = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
             else if (s === "goodshort") apiLink = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
@@ -31,45 +31,36 @@
             else if (s === "netshort") apiLink = `https://api.sonzaix.indevs.in/netshort/stream?dramaId=${e}`;
             else if (s === "dramabox") apiLink = `https://api.sonzaix.indevs.in/dramabox/stream?dramaId=${id}&episodeIndex=${e}`;
 
-            // 2. Bongkar Data dari Server
             fetch(apiLink)
                 .then(response => response.json())
                 .then(data => {
-                    // Jika server balas "Video Not Found"
-                    if (data.error || data.message === "error") {
-                        document.getElementById('player-container').innerHTML = `❌ Gagal: ${data.error || 'Video tidak ditemukan di server ini.'}`;
+                    if (data.error || data.message === "error" || data.code !== 200 && !data.data) {
+                        document.getElementById('player-container').innerHTML = `<span style="color:red; font-size:1.2rem;">❌ Gagal: Server menolak (Video Not Found)</span><br><br><small>Info API: ${JSON.stringify(data)}</small>`;
                         return;
                     }
 
-                    // 3. INI KUNCI JAWABANNYA: Cari link H264
+                    // AMBIL VIDEO H264
                     let realVideoUrl = "";
-                    if (data.data && data.data.h264) {
-                        realVideoUrl = data.data.h264; // Jalur utama
-                    } else if (data.data && data.data.video_list && data.data.video_list.h264) {
-                        realVideoUrl = data.data.video_list.h264; // Jalur alternatif
-                    } else if (data.h264) {
-                        realVideoUrl = data.h264; // Jalur pendek
-                    } else if (data.data && data.data.url) {
-                        realVideoUrl = data.data.url; // Fallback jika pakai 'url' biasa
-                    }
+                    if (data.data && data.data.h264) realVideoUrl = data.data.h264;
+                    else if (data.data && data.data.video_list && data.data.video_list.h264) realVideoUrl = data.data.video_list.h264;
+                    else if (data.data && data.data.url) realVideoUrl = data.data.url;
+                    else if (data.h264) realVideoUrl = data.h264;
 
-                    // 4. Masukkan ke Video Player
                     if (realVideoUrl) {
                         document.getElementById('player-container').innerHTML = `
                             <video controls autoplay>
                                 <source src="${realVideoUrl}" type="video/mp4">
-                                Browser Anda tidak mendukung pemutar video ini.
-                            </video>
-                        `;
+                                Browser error.
+                            </video>`;
                     } else {
-                        document.getElementById('player-container').innerHTML = `⚠️ Link H264 tidak ditemukan di data server.`;
+                        document.getElementById('player-container').innerHTML = `⚠️ Link h264 tidak ada di dalam respon API.`;
                     }
                 })
                 .catch(err => {
-                    document.getElementById('player-container').innerHTML = `❌ Gagal terhubung ke API.`;
+                    document.getElementById('player-container').innerHTML = `❌ Gagal mengambil data (Koneksi bermasalah).`;
                 });
         } else {
-            document.getElementById('player-container').innerHTML = "❌ Parameter link dari bot tidak lengkap.";
+            document.getElementById('player-container').innerHTML = "❌ Parameter kosong.";
         }
     </script>
 </body>
