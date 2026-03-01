@@ -10,26 +10,21 @@
     <script>
         const q = new URLSearchParams(window.location.search);
         const player = videojs('p');
-        
         async function play(b, c) {
             try {
                 const s = await (await fetch(`https://api.sonzaix.indevs.in/reelshort/stream?bookId=${b}&chapterId=${c}`)).json();
-                // MENCARI FORMAT VIDEO YANG ADA GAMBARNYA
+                // MENCARI FORMAT VIDEO YANG ADA GAMBARNYA (H264)
                 const v = s.data.videoList.find(x => x.encode === 'H264') || s.data.videoList[1] || s.data.videoList[0];
                 player.src({ src: v.playUrl, type: 'application/x-mpegURL' });
                 player.play();
-                
-                // LOGIKA PINDAH EPISODE OTOMATIS
                 player.one('ended', async () => {
                     const d = await (await fetch(`https://api.sonzaix.indevs.in/reelshort/detail?bookId=${b}`)).json();
                     const list = d.data.video_list;
-                    const idx = list.findIndex(x => x.chapterId === c);
-                    const next = list[idx + 1];
+                    const next = list[list.findIndex(x => x.chapterId === c) + 1];
                     if(next && !next.isLocked) play(b, next.chapterId);
                 });
-            } catch(e) { alert("Gagal memuat video"); }
+            } catch(e) { console.error(e); }
         }
-        
         if(q.get('bookId')) play(q.get('bookId'), q.get('chapterId'));
     </script>
 </body>
