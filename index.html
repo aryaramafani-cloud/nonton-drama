@@ -6,7 +6,7 @@
     <title>Dramaxofort Player</title>
     <style>
         body { margin: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
-        .p-box { width: 95%; max-width: 800px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 10px; overflow: hidden; }
+        .p-box { width: 95%; max-width: 850px; aspect-ratio: 16/9; background: #111; border: 2px solid #0ff; border-radius: 10px; overflow: hidden; box-shadow: 0 0 20px #0ff; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -17,7 +17,7 @@
         const s = u.get('srv'), id = u.get('id'), e = u.get('eps');
         if (s && id && e) {
             let v = "";
-            // LOGIKA 8 SERVER SESUAI LIST API KAMU
+            // LOGIKA 8 SERVER SESUAI LIST API KAMU (Fix Video Not Found)
             if (s === "melolo") v = `https://api.sonzaix.indevs.in/melolo/stream/${e}`;
             else if (s === "meloshort") v = `https://api.sonzaix.indevs.in/meloshort/stream?dramaId=${id}&episodeId=${e}`;
             else if (s === "goodshort") v = `https://api.sonzaix.indevs.in/goodshort/stream?bookId=${e}`;
